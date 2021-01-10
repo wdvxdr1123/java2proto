@@ -218,6 +218,9 @@ L:
 						ind = i
 					}
 				}
+				if len(fields) <= 0 {
+					continue L
+				}
 				fields[ind].Typename = enctype
 				fields[ind].Name = varName
 				continue L
