@@ -2,6 +2,7 @@ package internal
 
 import (
 	"fmt"
+	"github.com/golang/protobuf/protoc-gen-go/generator"
 	"html/template"
 	"io/ioutil"
 	"os"
@@ -49,6 +50,8 @@ func (p *proto) trim() {
 	for _, prefix := range typePrefix {
 		p.Name = strings.TrimPrefix(p.Name, prefix)
 	}
+	p.Name = generator.CamelCase(p.Name)
+	p.Name = string(p.Name[0]^' ') + p.Name[1:len(p.Name)]
 }
 
 func peek(n int) string {
@@ -78,7 +81,7 @@ func nextToken() (token string) {
 							return nextToken() // 递归处理
 						}
 					}
-				} else if sb.Len() == 0 || sb.String() == " " {
+				} else if sb.Len() == 0 || sb.String() == " " { // 空字符
 					sb.Reset()
 					continue
 				}
