@@ -1,0 +1,1 @@
+module "java2proto"
