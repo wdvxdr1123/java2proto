@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"html/template"
 	"io/ioutil"
+	"java2proto/internal/utils"
 	"os"
 	"strconv"
 	"strings"
 
-	"github.com/golang/protobuf/protoc-gen-go/generator"
 	"github.com/hbollon/go-edlib"
 )
 
@@ -52,8 +52,7 @@ func (p *proto) trim() {
 	for _, prefix := range typePrefix {
 		p.Name = strings.TrimPrefix(p.Name, prefix)
 	}
-	p.Name = generator.CamelCase(p.Name)
-	p.Name = string(p.Name[0]^' ') + p.Name[1:len(p.Name)]
+	p.Name = utils.PascalCase(p.Name)
 }
 
 func peek(n int) string {
