@@ -13,6 +13,8 @@ var (
 	data  []byte
 	index int
 	err   error
+
+	PackageName string
 )
 
 type proto struct {
@@ -80,6 +82,9 @@ func Parse(fileName string) {
 		os.Exit(1)
 	}
 	fmt.Println(`syntax = "proto2";`)
+	if PackageName != "" {
+		fmt.Printf("\noption go_package = \".;%v\";\n", PackageName)
+	}
 	parse()
 }
 
@@ -90,7 +95,13 @@ func parseFieldMap() (fields []proto) {
 		}
 		return
 	}
-	move(38) // = MessageMicro.initFieldMap(new int[]{
+	move(37) // = MessageMicro.initFieldMap(new int[]
+	if peek(1) != "{" {
+		peekUntil(';')
+		move(1)
+		return
+	}
+	move(1)
 	st := index
 	peekUntil('}')
 	tags := strings.SplitN(string(data[st:index]), ",", -1)

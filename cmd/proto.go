@@ -19,6 +19,9 @@ var protoCmd = &cobra.Command{
 			fmt.Println("请输入你要转换的文件路径")
 			return
 		}
+
+		internal.PackageName = cmd.Flag("package").Value.String()
+
 		file := args[0]
 		if !utils.IsExist(file) {
 			appPath, _ := os.Getwd()
@@ -35,4 +38,5 @@ var protoCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(protoCmd)
+	protoCmd.Flags().StringP("package", "p", "", "go_package name")
 }
