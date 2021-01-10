@@ -2,12 +2,14 @@ package internal
 
 import (
 	"fmt"
-	"github.com/golang/protobuf/protoc-gen-go/generator"
 	"html/template"
 	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/golang/protobuf/protoc-gen-go/generator"
+	"github.com/hbollon/go-edlib"
 )
 
 var (
@@ -163,6 +165,7 @@ func parse() {
 		}
 	}
 
+L:
 	for {
 		token := nextToken()
 		switch state {
@@ -192,16 +195,32 @@ func parse() {
 				varName := nextToken()
 				if varName == "__fieldMap__" { // pb 元信息
 					fields = parseFieldMap()
+					continue L
+				}
+				lowerName := strings.ToLower(varName)
+				var similarity float32
+				var ind int
+				enctype := convertTypeName(typeName)
+				if !strings.HasPrefix(enctype, "repeated") {
+					enctype = "optional " + enctype
 				}
 				for i := range fields {
 					if fields[i].Name == varName {
-						enctype := convertTypeName(typeName)
-						if !strings.HasPrefix(enctype, "repeated") {
-							enctype = "optional " + enctype
-						}
 						fields[i].Typename = enctype
+						continue L
+					}
+					if fields[i].Typename != "" {
+						continue
+					}
+					f, _ := edlib.StringsSimilarity(strings.ToLower(fields[i].Name), lowerName, edlib.Lcs)
+					if f > similarity {
+						similarity = f
+						ind = i
 					}
 				}
+				fields[ind].Typename = enctype
+				fields[ind].Name = varName
+				continue L
 			case "}":
 				saveProtoStruct()
 				state = 1
