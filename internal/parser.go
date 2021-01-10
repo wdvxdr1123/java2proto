@@ -30,11 +30,26 @@ var splitSymbol = [...]byte{
 	'\n',
 }
 
+var typePrefix = [...]string{
+	"rpt_", "string_", "bool_", "int32_",
+	"int64_", "uint32_", "uint64_",
+	"sint32_", "sint64_", "bytes_",
+	"str_", "float_", "double_",
+	"fixed32_", "fixed64_",
+	"sfixed32", "sfixed64", "str",
+}
+
 const messageTemplate = `
 message {{.MessageName}} {
 {{range .ProtoItems}}  {{.Typename}} {{.Name}} = {{.Tag}};
 {{end}}}
 `
+
+func (p *proto) trim() {
+	for _, prefix := range typePrefix {
+		p.Name = strings.TrimPrefix(p.Name, prefix)
+	}
+}
 
 func peek(n int) string {
 	return string(data[index : index+n])
@@ -130,6 +145,9 @@ func parse() {
 		if err != nil {
 			panic(err)
 		}
+		for i := range fields {
+			fields[i].trim()
+		}
 		err = tmpl.Execute(os.Stdout, struct {
 			MessageName string
 			ProtoItems  []proto
@@ -148,14 +166,17 @@ func parse() {
 		case 0:
 			if token == "{" {
 				state = 1
+			} else if token == "}" {
+				os.Exit(0)
 			}
 		case 1:
 			switch token {
 			case "class":
 				messageName = nextToken()
-				println(messageName)
 			case "{":
 				state = 2
+			case "}":
+				state = 1
 			default:
 			}
 		case 2:
@@ -209,10 +230,23 @@ func convertTypeName(typename string) string {
 	if prototype, ok := typenameMap[typename]; ok {
 		return prototype
 	}
-	typename = strings.TrimPrefix(typename, "PBRepeat")
 	typename = strings.TrimPrefix(typename, "PBRepeatMessageField")
+	typename = strings.TrimPrefix(typename, "PBRepeatField")
 	if strings.HasPrefix(typename, "<") {
-		return "repeated " + convertTypeName(strings.Trim(typename, "<>"))
+		return "repeated " + convertRepeatedTypeName(strings.Trim(typename, "<>"))
+	}
+	return typename
+}
+
+func convertRepeatedTypeName(typename string) string {
+	var typenameMap = map[string]string{
+		"Integer":         "uint32",
+		"Long":            "uint64",
+		"String":          "string",
+		"ByteStringMicro": "bytes",
+	}
+	if prototype, ok := typenameMap[typename]; ok {
+		return prototype
 	}
 	return typename
 }
