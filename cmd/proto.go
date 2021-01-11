@@ -21,6 +21,7 @@ var protoCmd = &cobra.Command{
 		}
 
 		internal.PackageName = cmd.Flag("package").Value.String()
+		internal.MessagePrefix = cmd.Flag("prefix").Value.String()
 
 		file := args[0]
 		if !utils.IsExist(file) {
@@ -38,5 +39,7 @@ var protoCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(protoCmd)
-	protoCmd.Flags().StringP("package", "p", "", "go_package name")
+	protoCmd.Flags().String("package", "", "go_package name")
+
+	protoCmd.Flags().String("prefix", "", "message prefix name")
 }

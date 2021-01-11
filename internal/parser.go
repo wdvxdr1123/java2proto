@@ -17,7 +17,8 @@ var (
 	index int
 	err   error
 
-	PackageName string
+	PackageName   string
+	MessagePrefix string
 )
 
 type proto struct {
@@ -34,12 +35,11 @@ var splitSymbol = [...]byte{
 }
 
 var typePrefix = [...]string{
-	"rpt_", "string_", "bool_", "int32_",
-	"int64_", "uint32_", "uint64_",
-	"sint32_", "sint64_", "bytes_",
-	"str_", "float_", "double_",
-	"fixed32_", "fixed64_",
-	"sfixed32", "sfixed64", "str",
+	"rpt_", "opt_", "msg_", "string_", "bool_", "int32_",
+	"int64_", "uint32_", "uint64_", "sint32_",
+	"sint64_", "bytes_", "str_", "float_",
+	"double_", "fixed32_", "fixed64_", "sfixed32",
+	"sfixed64", "str",
 }
 
 const messageTemplate = `
@@ -48,11 +48,11 @@ message {{.MessageName}} {
 {{end}}}
 `
 
-func (p *proto) trim() {
+func (p *proto) format() {
 	for _, prefix := range typePrefix {
 		p.Name = strings.TrimPrefix(p.Name, prefix)
 	}
-	p.Name = utils.PascalCase(p.Name)
+	p.Name = utils.SmallCamelCase(p.Name)
 }
 
 func peek(n int) string {
@@ -150,13 +150,13 @@ func parse() {
 			panic(err)
 		}
 		for i := range fields {
-			fields[i].trim()
+			fields[i].format()
 		}
 		err = tmpl.Execute(os.Stdout, struct {
 			MessageName string
 			ProtoItems  []proto
 		}{
-			MessageName: messageName,
+			MessageName: MessagePrefix + messageName,
 			ProtoItems:  fields,
 		})
 		if err != nil {
@@ -211,7 +211,7 @@ L:
 					if fields[i].Typename != "" {
 						continue
 					}
-					f, _ := edlib.StringsSimilarity(strings.ToLower(fields[i].Name), lowerName, edlib.Lcs)
+					f, _ := edlib.StringsSimilarity(strings.ToLower(fields[i].Name), lowerName, edlib.Levenshtein)
 					if f > similarity {
 						similarity = f
 						ind = i
@@ -221,8 +221,12 @@ L:
 					continue L
 				}
 				fields[ind].Typename = enctype
-				fields[ind].Name = varName
-				continue L
+				fields[ind].Name = func() string {
+					if len(fields[ind].Name) > len(varName) {
+						return varName
+					}
+					return fields[ind].Name
+				}()
 			case "}":
 				saveProtoStruct()
 				state = 1
@@ -259,7 +263,7 @@ func convertTypeName(typename string) string {
 	if strings.HasPrefix(typename, "<") {
 		return "repeated " + convertRepeatedTypeName(strings.Trim(typename, "<>"))
 	}
-	return typename
+	return MessagePrefix + typename
 }
 
 func convertRepeatedTypeName(typename string) string {
@@ -272,5 +276,5 @@ func convertRepeatedTypeName(typename string) string {
 	if prototype, ok := typenameMap[typename]; ok {
 		return prototype
 	}
-	return typename
+	return MessagePrefix + typename
 }

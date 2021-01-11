@@ -10,7 +10,7 @@ func isASCIILower(c byte) bool {
 	return 'a' <= c && c <= 'z'
 }
 
-func PascalCase(s string) string {
+func SmallCamelCase(s string) string {
 	if s == "" {
 		return ""
 	}
