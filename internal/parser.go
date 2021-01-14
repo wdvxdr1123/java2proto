@@ -32,6 +32,7 @@ var splitSymbol = [...]byte{
 	',',
 	';',
 	'\n',
+	'\r',
 }
 
 var typePrefix = [...]string{
@@ -48,11 +49,12 @@ message {{.MessageName}} {
 {{end}}}
 `
 
-func (p *proto) format() {
+func format(name string) string {
 	for _, prefix := range typePrefix {
-		p.Name = strings.TrimPrefix(p.Name, prefix)
+		name = strings.TrimPrefix(name, prefix)
 	}
-	p.Name = utils.SmallCamelCase(p.Name)
+	name = utils.SmallCamelCase(name)
+	return name
 }
 
 func peek(n int) string {
@@ -150,7 +152,7 @@ func parse() {
 			panic(err)
 		}
 		for i := range fields {
-			fields[i].format()
+			fields[i].Name = format(fields[i].Name)
 		}
 		err = tmpl.Execute(os.Stdout, struct {
 			MessageName string
@@ -163,7 +165,7 @@ func parse() {
 			panic(err)
 		}
 	}
-
+	fail := map[string]string{}
 L:
 	for {
 		token := nextToken()
@@ -196,9 +198,10 @@ L:
 					fields = parseFieldMap()
 					continue L
 				}
-				lowerName := strings.ToLower(varName)
-				var similarity float32
-				var ind int
+				if peek(1) != "=" {
+					println("ignore", typeName, varName)
+					continue
+				}
 				enctype := convertTypeName(typeName)
 				if !strings.HasPrefix(enctype, "repeated") {
 					enctype = "optional " + enctype
@@ -208,26 +211,33 @@ L:
 						fields[i].Typename = enctype
 						continue L
 					}
-					if fields[i].Typename != "" {
-						continue
-					}
-					f, _ := edlib.StringsSimilarity(strings.ToLower(fields[i].Name), lowerName, edlib.Levenshtein)
-					if f > similarity {
-						similarity = f
-						ind = i
-					}
 				}
-				if len(fields) <= 0 {
-					continue L
-				}
-				fields[ind].Typename = enctype
-				fields[ind].Name = func() string {
-					if len(fields[ind].Name) > len(varName) {
-						return varName
-					}
-					return fields[ind].Name
-				}()
+				fail[varName] = enctype
 			case "}":
+				for k, v := range fail {
+					lowerName := strings.ToLower(k)
+					var similarity = 0
+					var ind = 0
+					for i := range fields {
+						if fields[i].Typename != "" {
+							continue
+						}
+						s := edlib.LCS(lowerName, strings.ToLower(format(fields[i].Name)))
+						if s > similarity {
+							similarity = s
+							ind = i
+						}
+					}
+					println("auto match", fields[ind].Name, "->", k)
+					fields[ind].Typename = v
+					fields[ind].Name = func() string {
+						if len(fields[ind].Name) > len(k) {
+							return k
+						}
+						return fields[ind].Name
+					}()
+					delete(fail, k)
+				}
 				saveProtoStruct()
 				state = 1
 			}
