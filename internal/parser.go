@@ -251,7 +251,7 @@ func convertTypeName(typename string) string {
 		"PBBoolField":     "bool",
 		"PBBytesField":    "bytes",
 		"PBDoubleField":   "double",
-		"PBEnumField":     "int32", // 不知道处理
+		"PBEnumField":     "uint32", // 不知道处理
 		"PBFixed32Field":  "fixed32",
 		"PBFixed64Field":  "fixed64",
 		"PBFloatField":    "float",
