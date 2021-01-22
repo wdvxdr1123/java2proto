@@ -19,6 +19,7 @@ var (
 
 	PackageName   string
 	MessagePrefix string
+	WriteFile     string
 )
 
 type proto struct {
@@ -102,6 +103,13 @@ func Parse(fileName string) {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+
+	if WriteFile != "false" {
+		f, _ := os.OpenFile(fileName+".proto", os.O_WRONLY|os.O_CREATE|os.O_SYNC|os.O_TRUNC, 0755)
+		defer f.Close()
+		os.Stdout = f
+	}
+
 	fmt.Println(`syntax = "proto2";`)
 	if PackageName != "" {
 		fmt.Printf("\noption go_package = \".;%v\";\n", PackageName)
@@ -199,7 +207,9 @@ L:
 					continue L
 				}
 				if peek(1) != "=" {
-					println("ignore", typeName, varName)
+					if typeName != "static" {
+						println("ignore", typeName, varName)
+					}
 					continue
 				}
 				enctype := convertTypeName(typeName)

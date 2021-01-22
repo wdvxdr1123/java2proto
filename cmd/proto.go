@@ -22,18 +22,20 @@ var protoCmd = &cobra.Command{
 
 		internal.PackageName = cmd.Flag("package").Value.String()
 		internal.MessagePrefix = cmd.Flag("prefix").Value.String()
+		internal.WriteFile = cmd.Flag("write").Value.String()
 
-		file := args[0]
-		if !utils.IsExist(file) {
-			appPath, _ := os.Getwd()
-			file = path.Join(appPath, file)
+		for _, file := range args {
 			if !utils.IsExist(file) {
-				fmt.Println("文件路径不存在!")
-				return
+				appPath, _ := os.Getwd()
+				file = path.Join(appPath, file)
+				if !utils.IsExist(file) {
+					fmt.Println("文件路径不存在!")
+					return
+				}
 			}
-		}
 
-		internal.Parse(file)
+			internal.Parse(file)
+		}
 	},
 }
 
@@ -42,4 +44,6 @@ func init() {
 	protoCmd.Flags().String("package", "", "go_package name")
 
 	protoCmd.Flags().String("prefix", "", "message prefix name")
+
+	protoCmd.Flags().BoolP("write", "w", false, "write the proto file")
 }
