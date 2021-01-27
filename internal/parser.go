@@ -99,6 +99,9 @@ func nextToken() (token string) {
 
 func Parse(fileName string) {
 	data, err = ioutil.ReadFile(fileName)
+	defer func() {
+		_ = recover()
+	}()
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -106,7 +109,7 @@ func Parse(fileName string) {
 
 	if WriteFile != "false" {
 		f, _ := os.OpenFile(fileName+".proto", os.O_WRONLY|os.O_CREATE|os.O_SYNC|os.O_TRUNC, 0755)
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 		os.Stdout = f
 	}
 
@@ -189,6 +192,7 @@ L:
 			case "class":
 				messageName = nextToken()
 			case "{":
+				fields = []proto{}
 				state = 2
 			case "}":
 				state = 1
@@ -224,6 +228,9 @@ L:
 				}
 				fail[varName] = enctype
 			case "}":
+				if len(fields)+len(fail) == 0 { // ignore empty message
+					continue
+				}
 				for k, v := range fail {
 					lowerName := strings.ToLower(k)
 					var similarity = 0
@@ -275,26 +282,26 @@ func convertTypeName(typename string) string {
 		"PBUInt32Field":   "uint32",
 		"PBUInt64Field":   "uint64",
 	}
+	if strings.HasPrefix(typename, "PBRepeat") { // repeat 字段
+		return "repeated " + getRepeatTypeName()
+	}
 	if prototype, ok := typenameMap[typename]; ok {
 		return prototype
-	}
-	typename = strings.TrimPrefix(typename, "PBRepeatMessageField")
-	typename = strings.TrimPrefix(typename, "PBRepeatField")
-	if strings.HasPrefix(typename, "<") {
-		return "repeated " + convertRepeatedTypeName(strings.Trim(typename, "<>"))
 	}
 	return MessagePrefix + typename
 }
 
-func convertRepeatedTypeName(typename string) string {
-	var typenameMap = map[string]string{
-		"Integer":         "uint32",
-		"Long":            "uint64",
-		"String":          "string",
-		"ByteStringMicro": "bytes",
+func getRepeatTypeName() string {
+	var ret string
+	_ = nextToken()                                            // =
+	var class = nextToken()                                    // 类型段
+	if strings.HasPrefix(class, "PBField.initRepeatMessage") { // repeat message
+		ret = strings.TrimPrefix(class, "PBField.initRepeatMessage(")
+		ret = strings.TrimSuffix(ret, ".class)")
+		return ret
+	} else { // PBField: repeat fiel
+		ret = strings.TrimPrefix(class, "PBField.initRepeat(")
+		ret = strings.TrimSuffix(ret, ".__repeatHelper__)")
+		return convertTypeName(ret)
 	}
-	if prototype, ok := typenameMap[typename]; ok {
-		return prototype
-	}
-	return MessagePrefix + typename
 }
