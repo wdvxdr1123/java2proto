@@ -8,8 +8,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-
-	"github.com/hbollon/go-edlib"
 )
 
 var (
@@ -239,7 +237,7 @@ L:
 						if fields[i].Typename != "" {
 							continue
 						}
-						s := edlib.LCS(lowerName, strings.ToLower(format(fields[i].Name)))
+						s := utils.Lccs(lowerName, utils.ToASCIILower(format(fields[i].Name)))
 						if s > similarity {
 							similarity = s
 							ind = i

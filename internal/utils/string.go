@@ -1,5 +1,7 @@
 package utils
 
+import "strings"
+
 // Is c an ASCII digit?
 func isASCIIDigit(c byte) bool {
 	return '0' <= c && c <= '9'
@@ -8,6 +10,22 @@ func isASCIIDigit(c byte) bool {
 // Is c an ASCII lower-case letter?
 func isASCIILower(c byte) bool {
 	return 'a' <= c && c <= 'z'
+}
+
+func isASCIIUpper(c byte) bool {
+	return 'A' <= c && c <= 'Z'
+}
+
+func ToASCIILower(str string) string {
+	var builder = strings.Builder{}
+	for i := range str {
+		if isASCIIUpper(str[i]) {
+			builder.WriteByte(str[i] ^ ' ')
+		} else if isASCIILower(str[i]) {
+			builder.WriteByte(str[i])
+		}
+	}
+	return builder.String()
 }
 
 func SmallCamelCase(s string) string {
@@ -50,4 +68,28 @@ func SmallCamelCase(s string) string {
 		}
 	}
 	return string(t)
+}
+
+// Lccs 最长连续公共字串
+func Lccs(str1 string, str2 string) int {
+	var len1, len2, ans = len(str1), len(str2), 0
+	var dp = make([][]int, len1)
+	for i := range dp {
+		dp[i] = make([]int, len2)
+	}
+	for i := 0; i < len1; i++ {
+		for j := 0; j < len2; j++ {
+			if i == 0 || j == 0 { // 边界条件
+				dp[i][j] = 0
+			} else if str1[i] == str2[j] { // 连续
+				dp[i][j] = dp[i-1][j-1] + 1
+				if dp[i][j] > ans {
+					ans = dp[i][j]
+				}
+			} else { // 非连续
+				dp[i][j] = 0
+			}
+		}
+	}
+	return ans
 }
