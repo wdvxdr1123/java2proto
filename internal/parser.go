@@ -152,7 +152,7 @@ func parseFieldMap() (fields []proto) {
 }
 
 func parse() {
-	state := 0
+	state, dep := 0, 0
 	var messageName string
 	var fields []proto
 	saveProtoStruct := func() {
@@ -175,6 +175,36 @@ func parse() {
 		}
 	}
 	fail := map[string]string{}
+	save := func() {
+		if len(fields)+len(fail) != 0 { // ignore empty message
+
+			for k, v := range fail {
+				lowerName := strings.ToLower(k)
+				var similarity = 0
+				var ind = 0
+				for i := range fields {
+					if fields[i].Typename != "" {
+						continue
+					}
+					s := utils.Lccs(lowerName, utils.ToASCIILower(format(fields[i].Name)))
+					if s > similarity {
+						similarity = s
+						ind = i
+					}
+				}
+				println("auto match", fields[ind].Name, "->", k)
+				fields[ind].Typename = v
+				fields[ind].Name = func() string {
+					if len(fields[ind].Name) > len(k) {
+						return k
+					}
+					return fields[ind].Name
+				}()
+				delete(fail, k)
+			}
+			saveProtoStruct()
+		}
+	}
 L:
 	for {
 		token := nextToken()
@@ -191,6 +221,7 @@ L:
 				messageName = nextToken()
 			case "{":
 				fields = []proto{}
+				dep = 1
 				state = 2
 			case "}":
 				state = 1
@@ -209,7 +240,11 @@ L:
 					continue L
 				}
 				if peek(1) != "=" {
-					if typeName != "static" {
+					if typeName == "class" {
+						save()
+						println("嵌套", varName)
+						messageName = varName
+					} else if typeName != "static" { // 嵌套
 						println("ignore", typeName, varName)
 					}
 					continue
@@ -225,36 +260,14 @@ L:
 					}
 				}
 				fail[varName] = enctype
+			case "{":
+				dep++
 			case "}":
-				if len(fields)+len(fail) == 0 { // ignore empty message
-					continue
+				dep--
+				if dep == 0 {
+					save()
+					state = 1
 				}
-				for k, v := range fail {
-					lowerName := strings.ToLower(k)
-					var similarity = 0
-					var ind = 0
-					for i := range fields {
-						if fields[i].Typename != "" {
-							continue
-						}
-						s := utils.Lccs(lowerName, utils.ToASCIILower(format(fields[i].Name)))
-						if s > similarity {
-							similarity = s
-							ind = i
-						}
-					}
-					println("auto match", fields[ind].Name, "->", k)
-					fields[ind].Typename = v
-					fields[ind].Name = func() string {
-						if len(fields[ind].Name) > len(k) {
-							return k
-						}
-						return fields[ind].Name
-					}()
-					delete(fail, k)
-				}
-				saveProtoStruct()
-				state = 1
 			}
 		default:
 		}
