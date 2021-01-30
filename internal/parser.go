@@ -152,7 +152,7 @@ func parseFieldMap() (fields []proto) {
 }
 
 func parse() {
-	state, dep := 0, 0
+	state, dep, write := 0, 0, 0
 	var messageName string
 	var fields []proto
 	saveProtoStruct := func() {
@@ -176,10 +176,10 @@ func parse() {
 	}
 	fail := map[string]string{}
 	save := func() {
-		if len(fields)+len(fail) != 0 { // ignore empty message
-
+		if write != 0 { // ignore empty message
+			write = 0
 			for k, v := range fail {
-				lowerName := strings.ToLower(k)
+				lowerName := utils.ToASCIILower(k)
 				var similarity = 0
 				var ind = 0
 				for i := range fields {
@@ -237,6 +237,7 @@ L:
 				varName := nextToken()
 				if varName == "__fieldMap__" { // pb 元信息
 					fields = parseFieldMap()
+					write = 1
 					continue L
 				}
 				if peek(1) != "=" {
