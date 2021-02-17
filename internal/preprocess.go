@@ -8,11 +8,11 @@ import (
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
-var db *leveldb.DB
+var DB *leveldb.DB
 
 func init() {
 	var err error
-	db, err = leveldb.OpenFile(".java2proto", nil)
+	DB, err = leveldb.OpenFile(".java2proto", nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -91,7 +91,7 @@ func (s *Source) Preprocess() {
 				name := nowClass + "." + s.nextToken()    // var name
 				_ = s.nextToken()                         // =
 				val := strings.Trim(s.nextToken(), " \"") // value
-				err = db.Put([]byte(name), []byte(val), nil)
+				err = DB.Put([]byte(name), []byte(val), nil)
 				if err != nil {
 					println(err)
 				}

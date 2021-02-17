@@ -17,6 +17,7 @@ var preprocessCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		dir, _ := os.Getwd()
 		getFilelist(dir)
+		_ = internal.DB.Close()
 	},
 }
 

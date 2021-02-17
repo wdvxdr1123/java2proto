@@ -36,6 +36,8 @@ var protoCmd = &cobra.Command{
 
 			internal.Parse(file)
 		}
+
+		_ = internal.DB.Close()
 	},
 }
 

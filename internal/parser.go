@@ -104,7 +104,7 @@ func (s *Source) parseFieldMap() (fields []proto) {
 		name := strings.Trim(names[i], "\" ")
 		if ids := strings.SplitN(name, ".", 2); len(ids) > 1 {
 			fName := s._import[ids[0]] + "." + ids[1]
-			da, _ := db.Get([]byte(fName), nil)
+			da, _ := DB.Get([]byte(fName), nil)
 			name = string(da)
 			if len(da) <= 0 {
 				println("need:", fName)
@@ -113,8 +113,8 @@ func (s *Source) parseFieldMap() (fields []proto) {
 		tagstr := strings.Trim(tags[i], "\" ")
 		if ids := strings.SplitN(tagstr, ".", 2); len(ids) > 1 {
 			fName := strings.TrimSpace(s._import[ids[0]] + "." + ids[1])
-			da, _ := db.Get([]byte(fName), nil)
-			name = string(da)
+			da, _ := DB.Get([]byte(fName), nil)
+			tagstr = string(da)
 			if len(da) <= 0 {
 				println("need:", fName)
 			}
