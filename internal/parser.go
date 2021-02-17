@@ -102,7 +102,7 @@ func (s *Source) parseFieldMap() (fields []proto) {
 	names := strings.Split(string(s.Data[st:s.Index]), ",")
 	for i := range names {
 		name := strings.Trim(names[i], "\" ")
-		if ids := strings.Split(name, "."); len(ids) > 1 {
+		if ids := strings.SplitN(name, ".", 2); len(ids) > 1 {
 			fName := s._import[ids[0]] + "." + ids[1]
 			da, _ := db.Get([]byte(fName), nil)
 			name = string(da)
@@ -111,7 +111,7 @@ func (s *Source) parseFieldMap() (fields []proto) {
 			}
 		}
 		tagstr := strings.Trim(tags[i], "\" ")
-		if ids := strings.Split(tagstr, "."); len(ids) > 1 {
+		if ids := strings.SplitN(tagstr, ".", 2); len(ids) > 1 {
 			fName := strings.TrimSpace(s._import[ids[0]] + "." + ids[1])
 			da, _ := db.Get([]byte(fName), nil)
 			name = string(da)
@@ -228,7 +228,7 @@ L:
 				if s.peek(1) != "=" {
 					if typeName == "class" {
 						save()
-						println("嵌套", varName)
+						//println("嵌套", varName)
 						messageName = varName
 					} else if typeName != "static" { // 嵌套
 						println("ignore", typeName, varName)

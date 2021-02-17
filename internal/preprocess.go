@@ -3,7 +3,6 @@ package internal
 import (
 	"container/list"
 	"log"
-	"os"
 	"strings"
 
 	"github.com/syndtr/goleveldb/leveldb"
@@ -39,9 +38,6 @@ func (s *Source) nextToken() (token string) {
 	sb := &strings.Builder{}
 L:
 	for {
-		if s.Index >= len(s.Data) {
-			os.Exit(0)
-		}
 		var now = s.Data[s.Index]
 		for _, symbol := range splitSymbol {
 			if now == symbol {
@@ -59,7 +55,7 @@ L:
 					sb.Reset()
 					continue L
 				}
-				return strings.Trim(sb.String(), " ")
+				return strings.TrimSpace(sb.String())
 			}
 		}
 		sb.WriteByte(s.Data[s.Index])
@@ -68,9 +64,13 @@ L:
 }
 
 func (s *Source) Preprocess() {
+	defer func() {
+		_ = recover()
+	}()
 	s._import = map[string]string{}
 	var (
 		bracketCnt = 0
+		class      = 0
 		stack      = list.New()
 		nowClass   = ""
 	)
@@ -91,22 +91,28 @@ func (s *Source) Preprocess() {
 				name := nowClass + "." + s.nextToken()    // var name
 				_ = s.nextToken()                         // =
 				val := strings.Trim(s.nextToken(), " \"") // value
-				_ = db.Put([]byte(name), []byte(val), nil)
+				err = db.Put([]byte(name), []byte(val), nil)
+				if err != nil {
+					println(err)
+				}
 				//fmt.Println(name, "=", val)
 			}
-		case "class":
+		case "class", "interface", "@interface":
+			class++
 			className := s.nextToken()
 			nowClass = nowClass + "." + className
 			stack.PushBack(className)
 		case "{":
 			bracketCnt++
-		case "}":
+		case "}", "})":
 			bracketCnt--
-			if bracketCnt < stack.Len() {
+			for bracketCnt < stack.Len() {
 				back := stack.Back()
 				nowClass = strings.TrimSuffix(nowClass, "."+back.Value.(string))
 				stack.Remove(back)
 			}
+		default:
+			//fmt.Println(token)
 		}
 	}
 }

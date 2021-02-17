@@ -7,10 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 )
-
-var ch = make(chan string, 8)
 
 // preprocessCmd represents the preprocess command
 var preprocessCmd = &cobra.Command{
@@ -18,21 +15,8 @@ var preprocessCmd = &cobra.Command{
 	Short: "preprocess of the origin code",
 	Long:  `预处理文本，提取常量保存至数据库中。`,
 	Run: func(cmd *cobra.Command, args []string) {
-		wg := sync.WaitGroup{}
 		dir, _ := os.Getwd()
-		for i := 0; i < 8; i++ {
-			wg.Add(1)
-			go func() {
-				for file := range ch {
-					d, _ := os.ReadFile(file)
-					s := internal.Source{Data: d, Index: 0}
-					s.Preprocess()
-				}
-				wg.Done()
-			}()
-		}
 		getFilelist(dir)
-		wg.Wait()
 	},
 }
 
@@ -45,14 +29,15 @@ func getFilelist(path string) {
 			return nil
 		}
 		if strings.HasSuffix(path, "java") {
-			ch <- path
+			d, _ := os.ReadFile(path)
+			s := internal.Source{Data: d, Index: 0}
+			s.Preprocess()
 		}
 		return nil
 	})
 	if err != nil {
 		fmt.Printf("filepath.Walk() returned %v\n", err)
 	}
-	close(ch)
 }
 
 func init() {
