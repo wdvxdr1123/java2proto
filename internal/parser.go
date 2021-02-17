@@ -2,18 +2,16 @@ package internal
 
 import (
 	"fmt"
-	"html/template"
 	"io/ioutil"
 	"java2proto/internal/utils"
 	"os"
 	"strconv"
 	"strings"
+	"text/template"
 )
 
 var (
-	data  []byte
-	index int
-	err   error
+	err error
 
 	PackageName   string
 	MessagePrefix string
@@ -28,6 +26,7 @@ type proto struct {
 
 var splitSymbol = [...]byte{
 	' ',
+	'\t',
 	',',
 	';',
 	'\n',
@@ -56,47 +55,8 @@ func format(name string) string {
 	return name
 }
 
-func peek(n int) string {
-	return string(data[index : index+n])
-}
-
-func move(n int) {
-	index += n
-	return
-}
-
-func nextToken() (token string) {
-	sb := &strings.Builder{}
-	for {
-		if index >= len(data) {
-			os.Exit(0)
-		}
-		for _, symbol := range splitSymbol {
-			if data[index] == symbol {
-				move(1)
-				if sb.String() == "/*" { // jadx 好像只生成这种注释
-					sb.Reset()
-					for {
-						move(1)
-						if data[index] == '*' && peek(2) == "*/" {
-							move(2)
-							return nextToken() // 递归处理
-						}
-					}
-				} else if sb.Len() == 0 || sb.String() == " " { // 空字符
-					sb.Reset()
-					continue
-				}
-				return strings.Trim(sb.String(), " ")
-			}
-		}
-		sb.WriteByte(data[index])
-		move(1)
-	}
-}
-
 func Parse(fileName string) {
-	data, err = ioutil.ReadFile(fileName)
+	pData, err := ioutil.ReadFile(fileName)
 	defer func() {
 		_ = recover()
 	}()
@@ -115,44 +75,62 @@ func Parse(fileName string) {
 	if PackageName != "" {
 		fmt.Printf("\noption go_package = \".;%v\";\n", PackageName)
 	}
-	parse()
+	s := Source{Data: pData, Index: 0}
+	s.parse()
 }
 
-func parseFieldMap() (fields []proto) {
+func (s *Source) parseFieldMap() (fields []proto) {
 	peekUntil := func(b byte) {
-		for data[index] != b {
-			index++
+		for s.Data[s.Index] != b {
+			s.Index++
 		}
 		return
 	}
-	move(37) // = MessageMicro.initFieldMap(new int[]
-	if peek(1) != "{" {
+	s.move(37) // = MessageMicro.initFieldMap(new int[]
+	if s.peek(1) != "{" {
 		peekUntil(';')
-		move(1)
+		s.move(1)
 		return
 	}
-	move(1)
-	st := index
+	s.move(1)
+	st := s.Index
 	peekUntil('}')
-	tags := strings.SplitN(string(data[st:index]), ",", -1)
-	move(16) // }, new String[]{
-	st = index
+	tags := strings.Split(string(s.Data[st:s.Index]), ",")
+	s.move(16) // }, new String[]{
+	st = s.Index
 	peekUntil('}')
-	names := strings.SplitN(string(data[st:index]), ",", -1)
+	names := strings.Split(string(s.Data[st:s.Index]), ",")
 	for i := range names {
 		name := strings.Trim(names[i], "\" ")
+		if ids := strings.Split(name, "."); len(ids) > 1 {
+			fName := s._import[ids[0]] + "." + ids[1]
+			da, _ := db.Get([]byte(fName), nil)
+			name = string(da)
+			if len(da) <= 0 {
+				println("need:", fName)
+			}
+		}
 		tagstr := strings.Trim(tags[i], "\" ")
+		if ids := strings.Split(tagstr, "."); len(ids) > 1 {
+			fName := strings.TrimSpace(s._import[ids[0]] + "." + ids[1])
+			da, _ := db.Get([]byte(fName), nil)
+			name = string(da)
+			if len(da) <= 0 {
+				println("need:", fName)
+			}
+		}
 		tag, _ := strconv.Atoi(tagstr)
 		tag >>= 3
 		fields = append(fields, proto{Name: name, Tag: tag})
 	}
 	peekUntil(';')
-	move(1)
+	s.move(1)
 	return
 }
 
-func parse() {
+func (s *Source) parse() {
 	state, dep, write := 0, 0, 0
+	s._import = map[string]string{}
 	var messageName string
 	var fields []proto
 	saveProtoStruct := func() {
@@ -192,7 +170,7 @@ func parse() {
 						ind = i
 					}
 				}
-				println("auto match", fields[ind].Name, "->", k)
+				//println("auto match", fields[ind].Name, "->", k)
 				fields[ind].Typename = v
 				fields[ind].Name = func() string {
 					if len(fields[ind].Name) > len(k) {
@@ -207,18 +185,25 @@ func parse() {
 	}
 L:
 	for {
-		token := nextToken()
+		token := s.nextToken()
 		switch state {
 		case 0:
-			if token == "{" {
+			switch token {
+			case "package":
+				s._package = s.nextToken()
+			case "import":
+				importFile := s.nextToken()
+				splited := strings.SplitN(importFile, ".", -1)
+				s._import[splited[len(splited)-1]] = importFile
+			case "{":
 				state = 1
-			} else if token == "}" {
+			case "}":
 				os.Exit(0)
 			}
 		case 1:
 			switch token {
 			case "class":
-				messageName = nextToken()
+				messageName = s.nextToken()
 			case "{":
 				fields = []proto{}
 				dep = 1
@@ -230,17 +215,17 @@ L:
 		case 2:
 			switch token {
 			case "public", "static":
-				typeName := nextToken()
+				typeName := s.nextToken()
 				if typeName == "final" {
-					typeName = nextToken()
+					typeName = s.nextToken()
 				}
-				varName := nextToken()
+				varName := s.nextToken()
 				if varName == "__fieldMap__" { // pb 元信息
-					fields = parseFieldMap()
+					fields = s.parseFieldMap()
 					write = 1
 					continue L
 				}
-				if peek(1) != "=" {
+				if s.peek(1) != "=" {
 					if typeName == "class" {
 						save()
 						println("嵌套", varName)
@@ -250,7 +235,7 @@ L:
 					}
 					continue
 				}
-				enctype := convertTypeName(typeName)
+				enctype := s.convertTypeName(typeName)
 				if !strings.HasPrefix(enctype, "repeated") {
 					enctype = "optional " + enctype
 				}
@@ -275,7 +260,7 @@ L:
 	}
 }
 
-func convertTypeName(typename string) string {
+func (s *Source) convertTypeName(typename string) string {
 	var typenameMap = map[string]string{
 		"PBBoolField":     "bool",
 		"PBBytesField":    "bytes",
@@ -295,7 +280,7 @@ func convertTypeName(typename string) string {
 		"PBUInt64Field":   "uint64",
 	}
 	if strings.HasPrefix(typename, "PBRepeat") { // repeat 字段
-		return "repeated " + getRepeatTypeName()
+		return "repeated " + s.getRepeatTypeName()
 	}
 	if prototype, ok := typenameMap[typename]; ok {
 		return prototype
@@ -303,10 +288,10 @@ func convertTypeName(typename string) string {
 	return MessagePrefix + typename
 }
 
-func getRepeatTypeName() string {
+func (s *Source) getRepeatTypeName() string {
 	var ret string
-	_ = nextToken()                                            // =
-	var class = nextToken()                                    // 类型段
+	_ = s.nextToken()                                          // =
+	var class = s.nextToken()                                  // 类型段
 	if strings.HasPrefix(class, "PBField.initRepeatMessage") { // repeat message
 		ret = strings.TrimPrefix(class, "PBField.initRepeatMessage(")
 		ret = strings.TrimSuffix(ret, ".class)")
@@ -314,6 +299,6 @@ func getRepeatTypeName() string {
 	} else { // PBField: repeat fiel
 		ret = strings.TrimPrefix(class, "PBField.initRepeat(")
 		ret = strings.TrimSuffix(ret, ".__repeatHelper__)")
-		return convertTypeName(ret)
+		return s.convertTypeName(ret)
 	}
 }
