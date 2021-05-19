@@ -2,11 +2,13 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/spf13/cobra"
-	"java2proto/internal"
-	"java2proto/internal/utils"
 	"os"
 	"path"
+
+	"github.com/spf13/cobra"
+
+	"java2proto/internal"
+	"java2proto/internal/utils"
 )
 
 // protoCmd represents the proto command
@@ -36,16 +38,12 @@ var protoCmd = &cobra.Command{
 
 			internal.Parse(file)
 		}
-
-		_ = internal.DB.Close()
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(protoCmd)
 	protoCmd.Flags().String("package", "", "go_package name")
-
 	protoCmd.Flags().String("prefix", "", "message prefix name")
-
 	protoCmd.Flags().BoolP("write", "w", false, "write the proto file")
 }

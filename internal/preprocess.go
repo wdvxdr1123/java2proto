@@ -1,22 +1,8 @@
 package internal
 
 import (
-	"container/list"
-	"log"
 	"strings"
-
-	"github.com/syndtr/goleveldb/leveldb"
 )
-
-var DB *leveldb.DB
-
-func init() {
-	var err error
-	DB, err = leveldb.OpenFile(".java2proto", nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-}
 
 type Source struct {
 	_package string
@@ -60,59 +46,5 @@ L:
 		}
 		sb.WriteByte(s.Data[s.Index])
 		s.move(1)
-	}
-}
-
-func (s *Source) Preprocess() {
-	defer func() {
-		_ = recover()
-	}()
-	s._import = map[string]string{}
-	var (
-		bracketCnt = 0
-		class      = 0
-		stack      = list.New()
-		nowClass   = ""
-	)
-	for {
-		token := s.nextToken()
-		switch token {
-		case "package":
-			s._package = s.nextToken()
-			nowClass = s._package
-		case "import":
-			importFile := s.nextToken()
-			splited := strings.SplitN(importFile, ".", -1)
-			s._import[splited[len(splited)-1]] = importFile
-		case "public":
-			if s.peek(12) == "static final" {
-				s.move(12)
-				_ = s.nextToken()                         // type
-				name := nowClass + "." + s.nextToken()    // var name
-				_ = s.nextToken()                         // =
-				val := strings.Trim(s.nextToken(), " \"") // value
-				err = DB.Put([]byte(name), []byte(val), nil)
-				if err != nil {
-					println(err)
-				}
-				//fmt.Println(name, "=", val)
-			}
-		case "class", "interface", "@interface":
-			class++
-			className := s.nextToken()
-			nowClass = nowClass + "." + className
-			stack.PushBack(className)
-		case "{":
-			bracketCnt++
-		case "}", "})":
-			bracketCnt--
-			for bracketCnt < stack.Len() {
-				back := stack.Back()
-				nowClass = strings.TrimSuffix(nowClass, "."+back.Value.(string))
-				stack.Remove(back)
-			}
-		default:
-			//fmt.Println(token)
-		}
 	}
 }

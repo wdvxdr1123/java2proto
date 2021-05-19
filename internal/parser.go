@@ -3,16 +3,15 @@ package internal
 import (
 	"fmt"
 	"io/ioutil"
-	"java2proto/internal/utils"
 	"os"
 	"strconv"
 	"strings"
 	"text/template"
+
+	"java2proto/internal/utils"
 )
 
 var (
-	err error
-
 	PackageName   string
 	MessagePrefix string
 	WriteFile     string
@@ -43,7 +42,7 @@ var typePrefix = [...]string{
 
 const messageTemplate = `
 message {{.MessageName}} {
-{{range .ProtoItems}}  {{.Typename}} {{.Name}} = {{.Tag}};
+{{range .ProtoItems}}  {{.Typename}} {{.Name}} = {{.TagID}};
 {{end}}}
 `
 
@@ -86,7 +85,7 @@ func (s *Source) parseFieldMap() (fields []proto) {
 		}
 		return
 	}
-	s.move(37) // = MessageMicro.initFieldMap(new int[]
+	s.move(35) // = MessageMicro.initFieldMap(new int[]
 	if s.peek(1) != "{" {
 		peekUntil(';')
 		s.move(1)
@@ -102,23 +101,7 @@ func (s *Source) parseFieldMap() (fields []proto) {
 	names := strings.Split(string(s.Data[st:s.Index]), ",")
 	for i := range names {
 		name := strings.Trim(names[i], "\" ")
-		if ids := strings.SplitN(name, ".", 2); len(ids) > 1 {
-			fName := s._import[ids[0]] + "." + ids[1]
-			da, _ := DB.Get([]byte(fName), nil)
-			name = string(da)
-			if len(da) <= 0 {
-				println("need:", fName)
-			}
-		}
 		tagstr := strings.Trim(tags[i], "\" ")
-		if ids := strings.SplitN(tagstr, ".", 2); len(ids) > 1 {
-			fName := strings.TrimSpace(s._import[ids[0]] + "." + ids[1])
-			da, _ := DB.Get([]byte(fName), nil)
-			tagstr = string(da)
-			if len(da) <= 0 {
-				println("need:", fName)
-			}
-		}
 		tag, _ := strconv.Atoi(tagstr)
 		tag >>= 3
 		fields = append(fields, proto{Name: name, Tag: tag})
@@ -152,37 +135,6 @@ func (s *Source) parse() {
 			panic(err)
 		}
 	}
-	fail := map[string]string{}
-	save := func() {
-		if write != 0 { // ignore empty message
-			write = 0
-			for k, v := range fail {
-				lowerName := utils.ToASCIILower(k)
-				var similarity = 0
-				var ind = 0
-				for i := range fields {
-					if fields[i].Typename != "" {
-						continue
-					}
-					s := utils.Lccs(lowerName, utils.ToASCIILower(format(fields[i].Name)))
-					if s > similarity {
-						similarity = s
-						ind = i
-					}
-				}
-				//println("auto match", fields[ind].Name, "->", k)
-				fields[ind].Typename = v
-				fields[ind].Name = func() string {
-					if len(fields[ind].Name) > len(k) {
-						return k
-					}
-					return fields[ind].Name
-				}()
-				delete(fail, k)
-			}
-			saveProtoStruct()
-		}
-	}
 L:
 	for {
 		token := s.nextToken()
@@ -202,7 +154,7 @@ L:
 			}
 		case 1:
 			switch token {
-			case "class":
+			case "Class":
 				messageName = s.nextToken()
 			case "{":
 				fields = []proto{}
@@ -220,15 +172,18 @@ L:
 					typeName = s.nextToken()
 				}
 				varName := s.nextToken()
-				if varName == "__fieldMap__" { // pb 元信息
+				if varName == "__fieldMap__" && s.nextToken() == "=" { // pb 元信息
 					fields = s.parseFieldMap()
 					write = 1
 					continue L
 				}
 				if s.peek(1) != "=" {
-					if typeName == "class" {
-						save()
-						//println("嵌套", varName)
+					if typeName == "Class" {
+						if write != 0 { // ignore empty message
+							write = 0
+							saveProtoStruct()
+						}
+						// println("嵌套", varName)
 						messageName = varName
 					} else if typeName != "static" { // 嵌套
 						println("ignore", typeName, varName)
@@ -245,13 +200,15 @@ L:
 						continue L
 					}
 				}
-				fail[varName] = enctype
 			case "{":
 				dep++
 			case "}":
 				dep--
 				if dep == 0 {
-					save()
+					if write != 0 { // ignore empty message
+						write = 0
+						saveProtoStruct()
+					}
 					state = 1
 				}
 			}
@@ -294,7 +251,7 @@ func (s *Source) getRepeatTypeName() string {
 	var class = s.nextToken()                                  // 类型段
 	if strings.HasPrefix(class, "PBField.initRepeatMessage") { // repeat message
 		ret = strings.TrimPrefix(class, "PBField.initRepeatMessage(")
-		ret = strings.TrimSuffix(ret, ".class)")
+		ret = strings.TrimSuffix(ret, ".Class)")
 		return ret
 	} else { // PBField: repeat fiel
 		ret = strings.TrimPrefix(class, "PBField.initRepeat(")
