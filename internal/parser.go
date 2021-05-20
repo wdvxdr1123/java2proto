@@ -12,12 +12,6 @@ var (
 	WriteFile     string
 )
 
-type proto struct {
-	Name     string
-	Tag      int
-	Typename string
-}
-
 var typePrefix = [...]string{
 	"rpt_", "opt_", "msg_", "string_", "bool_", "int32_",
 	"int64_", "uint32_", "uint64_", "sint32_",

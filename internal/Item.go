@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"strings"
 
 	"java2proto/internal/grammar"
 	"java2proto/internal/utils"
@@ -107,7 +108,7 @@ func parseRepeatFieldType(init *grammar.JVariableInit) string {
 		case *grammar.JReferenceType:
 			return expr.Name.FirstType()
 		case *grammar.JNameDotObject:
-			return expr.Name.FirstType()
+			return expr.Name.String()
 		default:
 			panic("unknown arg expr in repeated field init")
 		}
@@ -142,12 +143,35 @@ func (c *Class) print(prefix string) string {
 		ID   int
 	}
 	var items []item
+	var failed []item
 	for k := range c.Tags {
-		items = append(items, item{
+		itm := item{
 			Type: c.Types[k],
 			Name: k,
 			ID:   c.Tags[k],
-		})
+		}
+
+		switch {
+		case itm.Type == "":
+			failed = append(failed, itm)
+		default:
+			delete(c.Types, k)
+			items = append(items, itm)
+		}
+	}
+	for _, itm := range failed {
+		var matched string
+		var match = -1
+		for k := range c.Types {
+			lccs := utils.Lccs(strings.ToLower(k), strings.ToLower(itm.Name))
+			if lccs > match {
+				matched = k
+				match = lccs
+			}
+		}
+		itm.Type = c.Types[matched]
+		delete(c.Types, matched)
+		items = append(items, itm)
 	}
 	sort.Slice(items, func(i, j int) bool {
 		return items[i].ID < items[j].ID

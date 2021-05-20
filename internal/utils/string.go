@@ -51,3 +51,22 @@ func SmallCamelCase(s string) string {
 	}
 	return string(t)
 }
+
+// Lccs 最长连续公共字串
+func Lccs(str1 string, str2 string) int {
+	var len1, len2, ans = len(str1), len(str2), 0
+	var dp = make([]int, len2+1)
+	for i := 0; i < len1; i++ {
+		for j := len2 - 1; j >= 0; j-- {
+			if str1[i] == str2[j] { // 连续
+				dp[j+1] = dp[j] + 1
+				if dp[j+1] > ans {
+					ans = dp[j+1]
+				}
+			} else {
+				dp[j+1] = 0 // 清空
+			}
+		}
+	}
+	return ans
+}
