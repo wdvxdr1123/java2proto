@@ -180,7 +180,7 @@ func (c *Class) print(prefix string) string {
 		write("  %s %s = %d;\n", itm.Type, format(itm.Name), itm.ID)
 	}
 	for _, inner := range c.Inners {
-		write("%s", inner.print(prefix+"  "))
+		fmt.Fprintf(buf, "%s\n", inner.print(prefix+"  "))
 	}
 	write("}\n")
 	return buf.String()
