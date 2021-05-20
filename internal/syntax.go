@@ -1,11 +1,20 @@
 package internal
 
-import "java2proto/internal/grammar"
+import (
+	"fmt"
 
-func Parse2(path string) {
+	"java2proto/internal/grammar"
+)
+
+func Parse(path string) {
 	lexer := grammar.NewFileLexer(path, false)
 	grammar.JulyParse(lexer)
-	decls := lexer.JavaProgram().TypeDecls
+	program := lexer.JavaProgram()
+	if program.Pkg.Name.String() == "com.tencent.mobileqq.pb" {
+		return
+	}
+
+	decls := program.TypeDecls
 	cls := NewClass()
 	for _, d := range decls {
 		switch decl := d.(type) {
@@ -13,5 +22,11 @@ func Parse2(path string) {
 			cls.walkClassDecl(decl)
 		}
 	}
-	println(cls.Name)
+
+	fmt.Println(`syntax = "proto2";`)
+	fmt.Println()
+
+	for _, inner := range cls.Inners {
+		fmt.Println(inner.print(""))
+	}
 }

@@ -1,7 +1,9 @@
 package internal
 
 import (
+	"bytes"
 	"fmt"
+	"sort"
 	"strconv"
 
 	"java2proto/internal/grammar"
@@ -44,14 +46,18 @@ func (c *Class) walkClassBody(body *grammar.JClassBody) {
 			switch typ {
 			case "PBRepeatField", "PBRepeatMessageField":
 				var rptType string
-				if len(decl.TypeSpec.TypeArgs) > 0 {
-					rptType = decl.TypeSpec.TypeArgs[0].TypeSpec.Name.String()
-				} else {
+				switch {
+				case decl.Init != nil:
 					rptType = parseRepeatFieldType(decl.Init)
+				case len(decl.TypeSpec.TypeArgs) > 0:
+					rptType = decl.TypeSpec.TypeArgs[0].TypeSpec.Name.String()
+				default:
+					panic(fmt.Sprintf("can't find repeat field type in %v", decl))
 				}
 				typ = "repeated " + utils.ConvertTypeName(rptType)
+
 			default:
-				typ = utils.ConvertTypeName(typ)
+				typ = "optional " + utils.ConvertTypeName(typ)
 			}
 			c.Types[decl.Name] = typ
 
@@ -66,7 +72,7 @@ func (c *Class) walkBlock(block *grammar.JBlock) {
 		switch stmt := stmt.(type) {
 		case *grammar.JLocalVariableDecl:
 		// ignore
-		case grammar.JSimpleStatement:
+		case *grammar.JSimpleStatement:
 			if stmt, ok := stmt.Object.(*grammar.JAssignmentExpr); ok {
 				left := stmt.Left.(*grammar.JReferenceType)
 				right := stmt.Right.(*grammar.JMethodAccess)
@@ -96,7 +102,15 @@ func (c *Class) walkClassDecl(decl *grammar.JClassDecl) {
 
 func parseRepeatFieldType(init *grammar.JVariableInit) string {
 	switch expr := init.Expr.(type) {
-	case grammar.JMethodAccess:
+	case *grammar.JMethodAccess:
+		switch expr := expr.ArgList[0].(type) {
+		case *grammar.JReferenceType:
+			return expr.Name.FirstType()
+		case *grammar.JNameDotObject:
+			return expr.Name.FirstType()
+		default:
+			panic("unknown arg expr in repeated field init")
+		}
 		return expr.ArgList[0].(*grammar.JReferenceType).Name.FirstType()
 	default:
 		panic("unknown expr in repeated field init")
@@ -109,7 +123,41 @@ func (c *Class) walkFieldMapInit(init *grammar.JMethodAccess) {
 	for i := range tagArray {
 		tag := tagArray[i].Expr.(*grammar.JLiteral).Text
 		name := nameArray[i].Expr.(*grammar.JLiteral).Text
+		name, _ = strconv.Unquote(name)
 		t, _ := strconv.Atoi(tag)
-		c.Tags[name] = t
+		c.Tags[name] = t >> 3
 	}
+}
+
+func (c *Class) print(prefix string) string {
+	buf := new(bytes.Buffer)
+	write := func(format string, a ...interface{}) {
+		buf.WriteString(prefix)
+		fmt.Fprintf(buf, format, a...)
+	}
+	write("message %s {\n", c.Name)
+	type item struct {
+		Type string
+		Name string
+		ID   int
+	}
+	var items []item
+	for k := range c.Tags {
+		items = append(items, item{
+			Type: c.Types[k],
+			Name: k,
+			ID:   c.Tags[k],
+		})
+	}
+	sort.Slice(items, func(i, j int) bool {
+		return items[i].ID < items[j].ID
+	})
+	for _, itm := range items {
+		write("  %s %s = %d;\n", itm.Type, format(itm.Name), itm.ID)
+	}
+	for _, inner := range c.Inners {
+		write("%s", inner.print(prefix+"  "))
+	}
+	write("}\n")
+	return buf.String()
 }

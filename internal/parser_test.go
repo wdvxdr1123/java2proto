@@ -5,5 +5,6 @@ import (
 )
 
 func Test1(t *testing.T) {
-	Parse2("tests/case2.java")
+	Parse("tests/case6.java")
+	// Parse("tests/case2.java")
 }
