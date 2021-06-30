@@ -31,7 +31,6 @@ func (c *Class) walkClassBody(body *grammar.JClassBody) {
 		switch decl := decl.(type) {
 		case *grammar.JClassDecl:
 			cls := NewClass()
-			cls.Name = decl.Name
 			cls.walkClassDecl(decl)
 			c.Inners = append(c.Inners, cls)
 
@@ -42,6 +41,12 @@ func (c *Class) walkClassBody(body *grammar.JClassBody) {
 					c.walkFieldMapInit(init)
 				}
 				continue
+			}
+			if decl.Init != nil && decl.Init.Expr != nil {
+				if _, ok := decl.Init.Expr.(*grammar.JLiteral); ok {
+					// todo(wdvxdr): parse enum & gen code.
+					continue
+				}
 			}
 			typ := decl.TypeSpec.Name.String()
 			switch typ {
@@ -87,6 +92,7 @@ func (c *Class) walkBlock(block *grammar.JBlock) {
 }
 
 func (c *Class) walkClassDecl(decl *grammar.JClassDecl) {
+	c.Name = decl.Name
 	for _, body := range decl.Body {
 		switch body := body.(type) {
 		case *grammar.JClassBody:
@@ -180,7 +186,7 @@ func (c *Class) print(prefix string) string {
 		write("  %s %s = %d;\n", itm.Type, format(itm.Name), itm.ID)
 	}
 	for _, inner := range c.Inners {
-		fmt.Fprintf(buf, "%s\n", inner.print(prefix+"  "))
+		fmt.Fprintf(buf, "\n%s", inner.print(prefix+"  "))
 	}
 	write("}\n")
 	return buf.String()
