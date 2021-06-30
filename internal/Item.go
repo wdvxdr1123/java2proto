@@ -142,7 +142,7 @@ func (c *Class) print(prefix string) string {
 		buf.WriteString(prefix)
 		fmt.Fprintf(buf, format, a...)
 	}
-	write("message %s {\n", c.Name)
+	write("message %s {", c.Name)
 	type item struct {
 		Type string
 		Name string
@@ -182,7 +182,10 @@ func (c *Class) print(prefix string) string {
 	sort.Slice(items, func(i, j int) bool {
 		return items[i].ID < items[j].ID
 	})
-	for _, itm := range items {
+	for i, itm := range items {
+		if i == 0 {
+			write("\n")
+		}
 		write("  %s %s = %d;\n", itm.Type, format(itm.Name), itm.ID)
 	}
 	for _, inner := range c.Inners {

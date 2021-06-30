@@ -26,7 +26,4 @@ func Parse(path string) {
 	fmt.Println(`syntax = "proto2";`)
 	fmt.Println()
 	fmt.Println(cls.print(""))
-	for _, inner := range cls.Inners {
-		fmt.Println(inner.print(""))
-	}
 }
