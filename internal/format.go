@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"java2proto/internal/utils"
+	"github.com/wdvxdr1123/java2proto/internal/utils"
 )
 
 var typePrefix = [...]string{

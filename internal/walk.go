@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"java2proto/internal/grammar"
-	"java2proto/internal/utils"
+	"github.com/wdvxdr1123/java2proto/internal/grammar"
+	"github.com/wdvxdr1123/java2proto/internal/utils"
 )
 
 func (c *Class) walkClassBody(body *grammar.JClassBody) {

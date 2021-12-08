@@ -1,6 +1,6 @@
 package main
 
-import "java2proto/cmd"
+import "github.com/wdvxdr1123/java2proto/cmd"
 
 func main() {
 	cmd.Execute()

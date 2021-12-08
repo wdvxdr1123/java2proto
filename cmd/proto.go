@@ -7,8 +7,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"java2proto/internal"
-	"java2proto/internal/utils"
+	"github.com/wdvxdr1123/java2proto/internal"
+	"github.com/wdvxdr1123/java2proto/internal/utils"
 )
 
 // protoCmd represents the proto command

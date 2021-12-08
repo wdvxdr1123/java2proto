@@ -3,7 +3,7 @@ package internal
 import (
 	"fmt"
 
-	"java2proto/internal/grammar"
+	"github.com/wdvxdr1123/java2proto/internal/grammar"
 )
 
 type Class struct {
