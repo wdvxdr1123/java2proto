@@ -54,7 +54,7 @@ func (c *Class) walkClassBody(body *grammar.JClassBody) {
 				var rptType string
 				switch {
 				case decl.Init != nil:
-					rptType = parseRepeatFieldType(decl.Init)
+					rptType = parseRepeatFieldType(decl.Init.Expr)
 				case len(decl.TypeSpec.TypeArgs) > 0:
 					rptType = decl.TypeSpec.TypeArgs[0].TypeSpec.Name.String()
 				default:
@@ -69,6 +69,30 @@ func (c *Class) walkClassBody(body *grammar.JClassBody) {
 
 		case *grammar.JBlock:
 			c.walkBlock(decl)
+
+		case *grammar.JMethodDecl:
+			if decl.Name == c.Name {
+				c.walkConstructor(decl)
+			}
+		}
+	}
+}
+
+func (c *Class) walkConstructor(decl *grammar.JMethodDecl) {
+	for _, obj := range decl.Block.List {
+		switch obj := obj.(type) {
+		case *grammar.JSimpleStatement:
+			if assign, ok := obj.Object.(*grammar.JAssignmentExpr); ok {
+				left := assign.Left.(*grammar.JObjectDotName).Name.LastType()
+
+				if right, ok := assign.Right.(*grammar.JMethodAccess); ok {
+					switch right.Method {
+					case "initRepeat", "initRepeatMessage": // repeat message
+						rtype := parseRepeatFieldType(right)
+						c.Types[left] = "repeated " + utils.ConvertTypeName(rtype)
+					}
+				}
+			}
 		}
 	}
 }
@@ -78,6 +102,13 @@ func (c *Class) walkBlock(block *grammar.JBlock) {
 		switch stmt := stmt.(type) {
 		case *grammar.JLocalVariableDecl:
 		// ignore
+		case *grammar.JIfElseStmt:
+			if stmt.IfBlock != nil {
+				c.walkBlock(stmt.IfBlock.(*grammar.JBlock))
+			}
+			if stmt.ElseBlock != nil {
+				c.walkBlock(stmt.ElseBlock.(*grammar.JBlock))
+			}
 		case *grammar.JSimpleStatement:
 			if stmt, ok := stmt.Object.(*grammar.JAssignmentExpr); ok {
 				left := stmt.Left.(*grammar.JReferenceType)
@@ -107,8 +138,8 @@ func (c *Class) walkClassDecl(decl *grammar.JClassDecl) {
 	}
 }
 
-func parseRepeatFieldType(init *grammar.JVariableInit) string {
-	switch expr := init.Expr.(type) {
+func parseRepeatFieldType(expr grammar.JObject) string {
+	switch expr := expr.(type) {
 	case *grammar.JMethodAccess:
 		switch expr := expr.ArgList[0].(type) {
 		case *grammar.JReferenceType:
