@@ -22,10 +22,6 @@ var protoCmd = &cobra.Command{
 			return
 		}
 
-		internal.PackageName = cmd.Flag("package").Value.String()
-		internal.MessagePrefix = cmd.Flag("prefix").Value.String()
-		internal.WriteFile = cmd.Flag("write").Value.String()
-
 		for _, file := range args {
 			if !utils.IsExist(file) {
 				appPath, _ := os.Getwd()
@@ -43,7 +39,4 @@ var protoCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(protoCmd)
-	protoCmd.Flags().String("package", "", "go_package name")
-	protoCmd.Flags().String("prefix", "", "message prefix name")
-	protoCmd.Flags().BoolP("write", "w", false, "write the proto file")
 }

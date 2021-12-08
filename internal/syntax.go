@@ -6,6 +6,22 @@ import (
 	"java2proto/internal/grammar"
 )
 
+type Class struct {
+	Name   string
+	Inners []*Class
+	Types  map[string]string
+	Tags   map[string]int
+}
+
+func NewClass() *Class {
+	cls := &Class{
+		Inners: make([]*Class, 0, 8),
+		Types:  make(map[string]string),
+		Tags:   make(map[string]int),
+	}
+	return cls
+}
+
 func Parse(path string) {
 	lexer := grammar.NewFileLexer(path, false)
 	grammar.JulyParse(lexer)
