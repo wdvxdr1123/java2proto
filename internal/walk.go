@@ -9,6 +9,7 @@ import (
 )
 
 func (c *Class) walkClassBody(body *grammar.JClassBody) {
+loop:
 	for _, decl := range body.List {
 		switch decl := decl.(type) {
 		case *grammar.JClassDecl:
@@ -40,7 +41,7 @@ func (c *Class) walkClassBody(body *grammar.JClassBody) {
 				case len(decl.TypeSpec.TypeArgs) > 0:
 					rptType = decl.TypeSpec.TypeArgs[0].TypeSpec.Name.String()
 				default:
-					panic(fmt.Sprintf("can't find repeat field type in %v", decl))
+					continue loop
 				}
 				typ = "repeated " + utils.ConvertTypeName(rptType)
 
