@@ -83,13 +83,16 @@ func (c *Class) walkConstructor(decl *grammar.JMethodDecl) {
 		switch obj := obj.(type) {
 		case *grammar.JSimpleStatement:
 			if assign, ok := obj.Object.(*grammar.JAssignmentExpr); ok {
-				left := assign.Left.(*grammar.JObjectDotName).Name.LastType()
+				left := asJObjectDotName(assign.Left)
+				if left == nil {
+					continue
+				}
 
-				if right, ok := assign.Right.(*grammar.JMethodAccess); ok {
+				if right := asJMethodAccess(assign.Right); right != nil {
 					switch right.Method {
 					case "initRepeat", "initRepeatMessage": // repeat message
 						rtype := parseRepeatFieldType(right)
-						c.Types[left] = "repeated " + utils.ConvertTypeName(rtype)
+						c.Types[left.Name.LastType()] = "repeated " + utils.ConvertTypeName(rtype)
 					}
 				}
 			}
@@ -111,12 +114,10 @@ func (c *Class) walkBlock(block *grammar.JBlock) {
 			}
 		case *grammar.JSimpleStatement:
 			if stmt, ok := stmt.Object.(*grammar.JAssignmentExpr); ok {
-				left := stmt.Left.(*grammar.JReferenceType)
-				right := stmt.Right.(*grammar.JMethodAccess)
-				if left.Name.String() != "__fieldMap__" {
-					continue
+				left := asJReferenceType(stmt.Left)
+				if left != nil && left.Name.String() == "__fieldMap__" {
+					c.walkFieldMapInit(asJMethodAccess(stmt.Right))
 				}
-				c.walkFieldMapInit(right)
 			}
 		}
 	}
