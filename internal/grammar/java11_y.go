@@ -82,6 +82,7 @@ import (
 //line grammar/java11.y:74
 
 type tmpVariableId struct {
+	object
 	name string
 	dims int
 }

@@ -16,9 +16,15 @@ func isNil(j JObject) bool {
 }
 
 type JObject interface {
+	j()
 }
 
+type object struct{}
+
+func (*object) j() {}
+
 type JUnimplemented struct {
+	object
 	TypeStr string
 }
 
@@ -27,6 +33,7 @@ func NewJUnimplemented(typestr string) *JUnimplemented {
 }
 
 type JAnnotation struct {
+	object
 	name      *JTypeName
 	elem      []JObject
 	hasParens bool
@@ -42,6 +49,7 @@ func NewJAnnotation(name *JTypeName, elem []JObject,
 }
 
 type JArrayAlloc struct {
+	object
 	Typename *JTypeName
 	Dimexprs []JObject
 	Dims     int
@@ -62,6 +70,7 @@ func (j *JArrayAlloc) SetInitializers(init []*JVariableInit) {
 }
 
 type JArrayReference struct {
+	object
 	Name *JTypeName
 	Obj  JObject
 	Expr JObject
@@ -80,6 +89,7 @@ func NewJArrayReference(name *JTypeName, obj JObject, expr JObject) *JArrayRefer
 }
 
 type JAssignmentExpr struct {
+	object
 	Left  JObject
 	Op    string
 	Right JObject
@@ -96,6 +106,7 @@ func NewJAssignmentExpr(left JObject, op string, right JObject) *JAssignmentExpr
 }
 
 type JBinaryExpr struct {
+	object
 	Obj1 JObject
 	Op   string
 	Obj2 JObject
@@ -114,6 +125,7 @@ func NewJBinaryExpr(obj1 JObject, op string, obj2 JObject) *JBinaryExpr {
 }
 
 type JBlock struct {
+	object
 	static bool
 	List   []JObject
 }
@@ -125,6 +137,7 @@ func NewJBlock(list []JObject) *JBlock {
 func (j *JBlock) SetStatic() { j.static = true }
 
 type JCastExpr struct {
+	object
 	Reftype *JReferenceType
 	Target  JObject
 }
@@ -140,6 +153,7 @@ func NewJCastExpr(reftype *JReferenceType, target JObject) *JCastExpr {
 }
 
 type JCatch struct {
+	object
 	Modifiers *JModifiers
 	TypeList  []*JTypeName
 	Name      string
@@ -157,6 +171,7 @@ func NewJCatch(modifiers *JModifiers, typelist []*JTypeName, name string,
 }
 
 type JClassAllocationExpr struct {
+	object
 	Name     *JTypeName
 	TypeArgs []*JTypeArgument
 	Arglist  []JObject
@@ -190,6 +205,7 @@ func (j *JClassAllocationExpr) SetBody(body []JObject) {
 }
 
 type JClassBody struct {
+	object
 	List []JObject
 }
 
@@ -202,6 +218,7 @@ func NewJClassBody(list []JObject) *JClassBody {
 }
 
 type JClassDecl struct {
+	object
 	modifiers   *JModifiers
 	Name        string
 	type_params []JObject
@@ -222,6 +239,7 @@ func NewJClassDecl(modifiers *JModifiers, name string, type_params []JObject,
 }
 
 type JConditionalExpr struct {
+	object
 	CondExpr JObject
 	IfExpr   JObject
 	ElseExpr JObject
@@ -233,6 +251,7 @@ func NewJConditionalExpr(condexpr JObject, ifexpr JObject, elseexpr JObject) *JC
 }
 
 type JConstantDecl struct {
+	object
 	modifiers *JModifiers
 	TypeSpec  *JReferenceType
 	Name      string
@@ -269,6 +288,7 @@ func (j *JConstantDecl) SetType(typespec *JReferenceType) {
 }
 
 type JElementValuePair struct {
+	object
 	name  string
 	value JObject
 }
@@ -282,6 +302,7 @@ func NewJElementValuePair(name string, value JObject) *JElementValuePair {
 }
 
 type JEmpty struct {
+	object
 }
 
 func NewJEmpty() *JEmpty {
@@ -289,6 +310,7 @@ func NewJEmpty() *JEmpty {
 }
 
 type JEnumBody struct {
+	object
 	constants []*JEnumConstant
 	bodydecl  []JObject
 }
@@ -310,6 +332,7 @@ func NewJEnumBody(clist []JObject, bodydecl []JObject) *JEnumBody {
 }
 
 type JEnumConstant struct {
+	object
 	Annotations []*JAnnotation
 	Name        string
 	ArgList     []JObject
@@ -335,6 +358,7 @@ func NewJEnumConstant(alist []JObject, name string, arglist []JObject,
 }
 
 type JEnumDecl struct {
+	object
 	modifiers  *JModifiers
 	Name       string
 	Interfaces []*JTypeName
@@ -360,6 +384,7 @@ func NewJEnumDecl(modifiers *JModifiers, name string, interfaces []*JTypeName,
 }
 
 type JForColon struct {
+	object
 	VarDecl *JVariableDecl
 	Expr    JObject
 	Body    JObject
@@ -387,6 +412,7 @@ func (j *JForColon) SetBody(body JObject) {
 }
 
 type JForExpr struct {
+	object
 	Init []JObject
 	Expr JObject
 	Incr []JObject
@@ -402,6 +428,7 @@ func (j *JForExpr) SetBody(body JObject) {
 }
 
 type JForVar struct {
+	object
 	VarDecl *JVariableDecl
 	Decl    JObject
 	Expr    JObject
@@ -447,6 +474,7 @@ func (j *JForVar) SetInit(init *JVariableInit) {
 }
 
 type JFormalParameter struct {
+	object
 	Modifiers *JModifiers
 	TypeSpec  *JReferenceType
 	DotDotDot bool
@@ -469,6 +497,7 @@ func (j *JFormalParameter) SetModifiers(modifiers *JModifiers) {
 }
 
 type JIfElseStmt struct {
+	object
 	Cond      JObject
 	IfBlock   JObject
 	ElseBlock JObject
@@ -485,6 +514,7 @@ func NewJIfElseStmt(cond JObject, ifblock JObject, elseblock JObject) *JIfElseSt
 }
 
 type JImportStmt struct {
+	object
 	Name      *JTypeName
 	is_wild   bool
 	is_static bool
@@ -495,6 +525,7 @@ func NewJImportStmt(name *JTypeName, is_wild bool, is_static bool) *JImportStmt 
 }
 
 type JInstanceOf struct {
+	object
 	Obj      JObject
 	TypeSpec *JReferenceType
 }
@@ -510,6 +541,7 @@ func NewJInstanceOf(obj JObject, typespec *JReferenceType) *JInstanceOf {
 }
 
 type JInterfaceDecl struct {
+	object
 	modifiers   *JModifiers
 	Name        *JTypeName
 	type_params []JObject
@@ -529,6 +561,7 @@ func NewJInterfaceDecl(modifiers *JModifiers, name *JTypeName,
 }
 
 type JInterfaceMethodDecl struct {
+	object
 	modifiers    *JModifiers
 	type_params  []JObject
 	TypeSpec     *JReferenceType
@@ -568,6 +601,7 @@ func (j *JInterfaceMethodDecl) SetTypeParameters(type_params []JObject) {
 }
 
 type JJumpToLabel struct {
+	object
 	IsContinue bool
 	Label      string
 }
@@ -585,6 +619,7 @@ func NewJJumpToLabel(token int, label string) *JJumpToLabel {
 }
 
 type JKeyword struct {
+	object
 	Token int
 	Name  string
 }
@@ -598,6 +633,7 @@ func NewJKeyword(token int, name string) *JKeyword {
 }
 
 type JLabeledStatement struct {
+	object
 	Label string
 	Stmt  JObject
 }
@@ -613,6 +649,7 @@ func NewJLabeledStatement(label string, stmt JObject) *JLabeledStatement {
 }
 
 type JLiteral struct {
+	object
 	Text string
 }
 
@@ -625,6 +662,7 @@ func NewJLiteral(text string) *JLiteral {
 }
 
 type JLocalVariableDecl struct {
+	object
 	Modifiers *JModifiers
 	TypeSpec  *JReferenceType
 	Vars      []*JVariableDecl
@@ -637,6 +675,7 @@ func NewJLocalVariableDecl(modifiers *JModifiers, typespec *JReferenceType,
 }
 
 type JMethodAccess struct {
+	object
 	NameObj  JObject
 	NameKey  *JKeyword
 	NameType *JTypeName
@@ -679,6 +718,7 @@ func NewJMethodAccessName(nametyp *JTypeName,
 }
 
 type JMethodDecl struct {
+	object
 	Modifiers    *JModifiers
 	type_params  []JObject
 	TypeSpec     *JReferenceType
@@ -730,6 +770,7 @@ const (
 )
 
 type JModifiers struct {
+	object
 	annotations []*JAnnotation
 	mod_bits    int
 }
@@ -835,6 +876,7 @@ func (j *JModifiers) writeModifiers(out io.Writer) {
 }
 
 type JNameDotObject struct {
+	object
 	Name *JTypeName
 	Obj  JObject
 }
@@ -850,6 +892,7 @@ func NewJNameDotObject(name *JTypeName, obj JObject) *JNameDotObject {
 }
 
 type JObjectDotName struct {
+	object
 	Obj  JObject
 	Name *JTypeName
 }
@@ -865,6 +908,7 @@ func NewJObjectDotName(obj JObject, name *JTypeName) *JObjectDotName {
 }
 
 type JPackageStmt struct {
+	object
 	Name *JTypeName
 }
 
@@ -873,6 +917,7 @@ func NewJPackageStmt(name *JTypeName) *JPackageStmt {
 }
 
 type JParens struct {
+	object
 	Expr JObject
 }
 
@@ -885,6 +930,7 @@ func NewJParens(expr JObject) *JParens {
 }
 
 type JProgramFile struct {
+	object
 	Pkg       *JPackageStmt
 	Imports   []JObject
 	TypeDecls []JObject
@@ -909,6 +955,7 @@ func NewJProgramFile(pobj JObject, imports []JObject,
 }
 
 type JReferenceType struct {
+	object
 	Name     *JTypeName
 	TypeArgs []*JTypeArgument
 	Dims     int
@@ -936,6 +983,7 @@ func NewJReferenceType(name *JTypeName, obj_args []JObject,
 }
 
 type JSimpleStatement struct {
+	object
 	Keyword *JKeyword
 	Object  JObject
 }
@@ -945,6 +993,7 @@ func NewJSimpleStatement(keyword *JKeyword, object JObject) *JSimpleStatement {
 }
 
 type JSwitch struct {
+	object
 	Expr   JObject
 	Groups []*JSwitchGroup
 }
@@ -970,6 +1019,7 @@ func NewJSwitch(expr JObject, grouplist []JObject) *JSwitch {
 }
 
 type JSwitchGroup struct {
+	object
 	Labels []*JSwitchLabel
 	Stmts  []JObject
 }
@@ -995,6 +1045,7 @@ func NewJSwitchGroup(labellist []JObject, stmtlist []JObject) *JSwitchGroup {
 }
 
 type JSwitchLabel struct {
+	object
 	Name      string
 	Expr      JObject
 	IsDefault bool
@@ -1015,6 +1066,7 @@ func NewJSwitchLabel(name string, expr JObject, is_default bool) *JSwitchLabel {
 }
 
 type JSynchronized struct {
+	object
 	Expr  JObject
 	Block *JBlock
 }
@@ -1028,6 +1080,7 @@ func NewJSynchronized(expr JObject, block *JBlock) *JSynchronized {
 }
 
 type JTry struct {
+	object
 	Block   *JBlock
 	Catches []*JCatch
 	Finally *JBlock
@@ -1061,6 +1114,7 @@ const (
 )
 
 type JTypeArgument struct {
+	object
 	TypeSpec *JReferenceType
 	Ts_type  int
 }
@@ -1070,6 +1124,7 @@ func NewJTypeArgument(typespec *JReferenceType, ts_type int) *JTypeArgument {
 }
 
 type JTypeName struct {
+	object
 	is_primitive bool
 	names        []string
 }
@@ -1151,6 +1206,7 @@ func (qn *JTypeName) String() string {
 }
 
 type JTypeParameter struct {
+	object
 	name   string
 	bounds []JObject
 }
@@ -1160,6 +1216,7 @@ func NewJTypeParameter(name string, bounds []JObject) *JTypeParameter {
 }
 
 type JUnaryExpr struct {
+	object
 	Op        string
 	Obj       JObject
 	is_prefix bool
@@ -1176,6 +1233,7 @@ func NewJUnaryExpr(op string, obj JObject, is_prefix bool) *JUnaryExpr {
 }
 
 type JVariableDecl struct {
+	object
 	Modifiers *JModifiers
 	TypeSpec  *JReferenceType
 	Name      string
@@ -1201,6 +1259,7 @@ func (j *JVariableDecl) SetType(typespec *JReferenceType) {
 }
 
 type JVariableInit struct {
+	object
 	Expr      JObject
 	ArrayList []*JVariableInit
 }
@@ -1216,6 +1275,7 @@ func NewJVariableInit(expr JObject, arraylist []*JVariableInit) *JVariableInit {
 }
 
 type JWhile struct {
+	object
 	Expr      JObject
 	Stmt      JObject
 	IsDoWhile bool

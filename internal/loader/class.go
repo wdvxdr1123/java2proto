@@ -163,8 +163,7 @@ func (c *Class) walkFieldMapInit(init *grammar.JMethodAccess) {
 	nameArray := init.ArgList[1].(*grammar.JArrayAlloc).Init
 	for i := range tagArray {
 		tag := tagArray[i].Expr.(*grammar.JLiteral).Text
-		name := nameArray[i].Expr.(*grammar.JLiteral).Text
-		name, _ = strconv.Unquote(name)
+		name, _ := strconv.Unquote(nameArray[i].Expr.(*grammar.JLiteral).Text)
 		t, _ := strconv.Atoi(tag)
 		c.Tags[name] = t >> 3
 	}
