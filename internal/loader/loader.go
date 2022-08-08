@@ -33,15 +33,24 @@ func LoadPackage(path string) (*Package, error) {
 	return pkg, nil
 }
 
+var fieldMap = []byte("__fieldMap__")
+
 func (pkg *Package) load(file string) {
 	if path.Ext(file) != ".java" {
 		return
 	}
-	lexer := grammar.NewFileLexer(path.Join(pkg.Path, file), false)
+	file = path.Join(pkg.Path, file)
+	readFile, err := os.ReadFile(file)
+	if err != nil {
+		return
+	}
+	if !bytes.Contains(readFile, fieldMap) {
+		return
+	}
+	lexer := grammar.NewFileLexer(file, false)
 	grammar.JulyParse(lexer)
 	prog := lexer.JavaProgram()
 	if prog == nil {
-		println("error at:", path.Join(pkg.Path, file))
 		return
 	}
 	if prog.Pkg.Name.String() == "com.tencent.mobileqq.pb" {

@@ -75,7 +75,7 @@ loop:
 				case decl.Init != nil:
 					rptType = parseRepeatFieldType(decl.Init.Expr)
 				case len(decl.TypeSpec.TypeArgs) > 0:
-					rptType = decl.TypeSpec.TypeArgs[0].TypeSpec.Name.String()
+					rptType = c.typeName(decl.TypeSpec.TypeArgs[0].TypeSpec.Name.String())
 				default:
 					continue loop
 				}
@@ -262,6 +262,12 @@ var typenameMap = map[string]string{
 	"PBStringField":   "string",
 	"PBUInt32Field":   "uint32",
 	"PBUInt64Field":   "uint64",
+
+	// repeat field
+	"String":          "string",
+	"ByteStringMicro": "bytes",
+	"Integer":         "uint32",
+	"Long":            "uint64",
 }
 
 func (c *Class) typeName(typename string) string {
