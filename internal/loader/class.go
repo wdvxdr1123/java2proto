@@ -13,6 +13,7 @@ import (
 
 type Class struct {
 	Name   string
+	Outer  string
 	Inners []*Class
 	Types  map[string]string
 	Tags   map[string]int
@@ -25,6 +26,22 @@ func NewClass() *Class {
 		Tags:   make(map[string]int),
 	}
 	return cls
+}
+
+func (c *Class) walkClassDecl(decl *grammar.JClassDecl) {
+	c.Outer, c.Name = cutClassName(decl.Name)
+	for _, body := range decl.Body {
+		switch body := body.(type) {
+		case *grammar.JClassBody:
+			c.walkClassBody(body)
+
+		case *grammar.JBlock:
+			c.walkBlock(body)
+
+		default:
+			panic(fmt.Sprintf("unknown body type %T", body))
+		}
+	}
 }
 
 func (c *Class) walkClassBody(body *grammar.JClassBody) {
@@ -62,10 +79,10 @@ loop:
 				default:
 					continue loop
 				}
-				typ = "repeated " + utils.ConvertTypeName(rptType)
+				typ = "repeated " + c.typeName(rptType)
 
 			default:
-				typ = "optional " + utils.ConvertTypeName(typ)
+				typ = "optional " + c.typeName(typ)
 			}
 			c.Types[decl.Name] = typ
 
@@ -111,7 +128,7 @@ func (c *Class) walkConstructor(decl *grammar.JMethodDecl) {
 					switch right.Method {
 					case "initRepeat", "initRepeatMessage": // repeat message
 						rtype := parseRepeatFieldType(right)
-						c.Types[left.Name.LastType()] = "repeated " + utils.ConvertTypeName(rtype)
+						c.Types[left.Name.LastType()] = "repeated " + c.typeName(rtype)
 					}
 				}
 			}
@@ -138,22 +155,6 @@ func (c *Class) walkBlock(block *grammar.JBlock) {
 					c.walkFieldMapInit(asJMethodAccess(stmt.Right))
 				}
 			}
-		}
-	}
-}
-
-func (c *Class) walkClassDecl(decl *grammar.JClassDecl) {
-	c.Name = decl.Name
-	for _, body := range decl.Body {
-		switch body := body.(type) {
-		case *grammar.JClassBody:
-			c.walkClassBody(body)
-
-		case *grammar.JBlock:
-			c.walkBlock(body)
-
-		default:
-			panic(fmt.Sprintf("unknown body type %T", body))
 		}
 	}
 }
@@ -242,4 +243,34 @@ func (c *Class) print(prefix string) string {
 	}
 	write("}\n")
 	return buf.String()
+}
+
+var typenameMap = map[string]string{
+	"PBBoolField":     "bool",
+	"PBBytesField":    "bytes",
+	"PBDoubleField":   "double",
+	"PBEnumField":     "uint32", // 不知道处理
+	"PBFixed32Field":  "fixed32",
+	"PBFixed64Field":  "fixed64",
+	"PBFloatField":    "float",
+	"PBInt32Field":    "int32",
+	"PBInt64Field":    "int64",
+	"PBSFixed32Field": "sfixed32",
+	"PBSFixed64Field": "sfixed64",
+	"PBSInt32Field":   "sint32",
+	"PBSInt64Field":   "sint64",
+	"PBStringField":   "string",
+	"PBUInt32Field":   "uint32",
+	"PBUInt64Field":   "uint64",
+}
+
+func (c *Class) typeName(typename string) string {
+	if prototype, ok := typenameMap[typename]; ok {
+		return prototype
+	}
+	outer, typ := cutClassName(typename)
+	if outer == c.Outer {
+		return typ
+	}
+	return outer + "." + typ
 }

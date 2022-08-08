@@ -1,8 +1,10 @@
 package loader
 
 import (
+	"bytes"
 	"fmt"
 	"os"
+	"path"
 
 	"github.com/wdvxdr1123/java2proto/internal/grammar"
 )
@@ -10,43 +12,76 @@ import (
 type Package struct {
 	Path    string
 	Name    string
-	Classes []*Class
+	Classes map[string][]*Class
 }
 
 func LoadPackage(path string) (*Package, error) {
-	dirs, err := os.ReadDir(path)
+	dir, err := os.ReadDir(path)
 	if err != nil {
 		return nil, err
 	}
-	for _, dir := range dirs {
-		if dir.IsDir() {
+	pkg := &Package{
+		Path:    path,
+		Classes: make(map[string][]*Class),
+	}
+	for _, f := range dir {
+		if f.IsDir() {
 			continue
 		}
-		info, _ := dir.Info()
-		_ = info
-		println(dir.Name())
+		pkg.load(f.Name())
 	}
-	return nil, nil
+	return pkg, nil
 }
 
-func Parse(path string) {
-	lexer := grammar.NewFileLexer(path, false)
+func (pkg *Package) load(file string) {
+	if path.Ext(file) != ".java" {
+		return
+	}
+	lexer := grammar.NewFileLexer(path.Join(pkg.Path, file), false)
 	grammar.JulyParse(lexer)
-	program := lexer.JavaProgram()
-	if program.Pkg.Name.String() == "com.tencent.mobileqq.pb" {
+	prog := lexer.JavaProgram()
+	if prog.Pkg.Name.String() == "com.tencent.mobileqq.pb" {
 		return
 	}
 
-	decls := program.TypeDecls
-	cls := NewClass()
-	for _, d := range decls {
-		switch decl := d.(type) {
-		case *grammar.JClassDecl:
-			cls.walkClassDecl(decl)
-		}
+	var ok bool
+	for _, imp := range prog.Imports {
+		ok = ok || imp.(*grammar.JImportStmt).Name.PackageString() == "com.tencent.mobileqq.pb"
+	}
+	if !ok {
+		return
 	}
 
-	fmt.Println(`syntax = "proto2";`)
-	fmt.Println()
-	fmt.Println(cls.print(""))
+	pkg.decls(prog.TypeDecls)
+}
+
+func (pkg *Package) decls(list []grammar.JObject) {
+	for _, d := range list {
+		switch decl := d.(type) {
+		case *grammar.JClassDecl:
+			outer, _ := cutClassName(decl.Name)
+			cls := NewClass()
+			cls.walkClassDecl(decl)
+			pkg.Classes[outer] = append(pkg.Classes[outer], cls)
+		}
+	}
+}
+
+func (pkg *Package) Dump(p string) {
+	buf := new(bytes.Buffer)
+	p = path.Join(p, pkg.Path)
+	if len(pkg.Classes) != 0 {
+		os.MkdirAll(p, 0750)
+	}
+	for name, classes := range pkg.Classes {
+		buf.Reset()
+		fmt.Fprintln(buf, `syntax = "proto2";`)
+		for i, class := range classes {
+			if i == 0 {
+				fmt.Fprintln(buf)
+			}
+			fmt.Fprintln(buf, class.print(""))
+		}
+		_ = os.WriteFile(path.Join(p, name+".proto"), buf.Bytes(), 0o644)
+	}
 }
