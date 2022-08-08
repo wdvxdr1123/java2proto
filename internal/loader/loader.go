@@ -4,14 +4,13 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/wdvxdr1123/java2proto/interna/loader"
 	"github.com/wdvxdr1123/java2proto/internal/grammar"
 )
 
 type Package struct {
 	Path    string
 	Name    string
-	Classes []*loader.Class
+	Classes []*Class
 }
 
 func LoadPackage(path string) (*Package, error) {
