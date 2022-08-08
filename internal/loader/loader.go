@@ -63,9 +63,12 @@ func (pkg *Package) decls(list []grammar.JObject) {
 	for _, d := range list {
 		switch decl := d.(type) {
 		case *grammar.JClassDecl:
-			outer, _ := cutClassName(decl.Name)
+			outer, inner := cutClassName(decl.Name)
 			cls := NewClass()
 			cls.walkClassDecl(decl)
+			if outer == "" {
+				outer = inner
+			}
 			pkg.Classes[outer] = append(pkg.Classes[outer], cls)
 		}
 	}
