@@ -40,6 +40,10 @@ func (pkg *Package) load(file string) {
 	lexer := grammar.NewFileLexer(path.Join(pkg.Path, file), false)
 	grammar.JulyParse(lexer)
 	prog := lexer.JavaProgram()
+	if prog == nil {
+		println("error at:", path.Join(pkg.Path, file))
+		return
+	}
 	if prog.Pkg.Name.String() == "com.tencent.mobileqq.pb" {
 		return
 	}
