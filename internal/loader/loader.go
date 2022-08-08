@@ -1,25 +1,33 @@
-package internal
+package loader
 
 import (
 	"fmt"
+	"os"
 
+	"github.com/wdvxdr1123/java2proto/interna/loader"
 	"github.com/wdvxdr1123/java2proto/internal/grammar"
 )
 
-type Class struct {
-	Name   string
-	Inners []*Class
-	Types  map[string]string
-	Tags   map[string]int
+type Package struct {
+	Path    string
+	Name    string
+	Classes []*loader.Class
 }
 
-func NewClass() *Class {
-	cls := &Class{
-		Inners: make([]*Class, 0, 8),
-		Types:  make(map[string]string),
-		Tags:   make(map[string]int),
+func LoadPackage(path string) (*Package, error) {
+	dirs, err := os.ReadDir(path)
+	if err != nil {
+		return nil, err
 	}
-	return cls
+	for _, dir := range dirs {
+		if dir.IsDir() {
+			continue
+		}
+		info, _ := dir.Info()
+		_ = info
+		println(dir.Name())
+	}
+	return nil, nil
 }
 
 func Parse(path string) {

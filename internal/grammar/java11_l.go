@@ -209,7 +209,7 @@ yystart1:
 		goto yystate7
 	case c == '\t':
 		goto yystate4
-	case c == '\x01' || c >= 'A' && c <= 'Z' || c == '_' || c == 'g' || c == 'h' || c == 'j' || c == 'k' || c == 'm' || c == 'o' || c == 'q' || c == 'u' || c >= 'x' && c <= 'z':
+	case c == '\x01' || c == '$' || c >= 'A' && c <= 'Z' || c == '_' || c == 'g' || c == 'h' || c == 'j' || c == 'k' || c == 'm' || c == 'o' || c == 'q' || c == 'u' || c >= 'x' && c <= 'z':
 		goto yystate2
 	case c == '^':
 		goto yystate76
@@ -254,7 +254,7 @@ yystate2:
 	switch {
 	default:
 		goto yyrule68
-	case c == '\x01' || c >= '0' && c <= '9' || c >= 'A' && c <= 'Z' || c == '_' || c >= 'a' && c <= 'z':
+	case c == '\x01' || c == '$' || c >= '0' && c <= '9' || c >= 'A' && c <= 'Z' || c == '_' || c >= 'a' && c <= 'z':
 		goto yystate2
 	}
 

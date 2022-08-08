@@ -7,7 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/wdvxdr1123/java2proto/internal"
+	"github.com/wdvxdr1123/java2proto/internal/loader"
 	"github.com/wdvxdr1123/java2proto/internal/utils"
 )
 
@@ -32,7 +32,7 @@ var protoCmd = &cobra.Command{
 				}
 			}
 
-			internal.Parse(file)
+			loader.Parse(file)
 		}
 	},
 }

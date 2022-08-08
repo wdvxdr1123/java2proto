@@ -1,4 +1,4 @@
-package internal
+package loader
 
 import "github.com/wdvxdr1123/java2proto/internal/grammar"
 
