@@ -269,7 +269,7 @@ func (c *Class) typeName(typename string) string {
 		return prototype
 	}
 	outer, typ := cutClassName(typename)
-	if outer == c.Outer {
+	if outer == c.Outer || outer == "" {
 		return typ
 	}
 	return outer + "." + typ
