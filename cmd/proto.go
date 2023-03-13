@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/fs"
 	"path/filepath"
@@ -9,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/wdvxdr1123/java2proto/internal/loader"
+	"github.com/wdvxdr1123/java2proto/internal/versions"
 )
 
 // protoCmd represents the proto command
@@ -40,6 +42,21 @@ var protoCmd = &cobra.Command{
 	},
 }
 
+// dump represents the dump command
+var dump = &cobra.Command{
+	Use:   "dump",
+	Short: "dump version info",
+	Long:  `dump version info`,
+	Run: func(cmd *cobra.Command, args []string) {
+		versions.DumpWtloginSDK("oicq/wlogin_sdk")
+		versions.DumpBeacon("./com/tencent/mobileqq/statistics/QQBeaconReport.java")
+
+		output, _ := json.MarshalIndent(&versions.Version, "", "  ")
+		fmt.Printf("%s\n", output)
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(protoCmd)
+	rootCmd.AddCommand(dump)
 }
