@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/wdvxdr1123/java2proto/internal/grammar"
 )
@@ -52,6 +53,7 @@ func FixUp() {
 	APhone.SubAppId = APhone.AppId
 	APhone.ApkSign = hex.EncodeToString([]byte{0xA6, 0xB7, 0x45, 0xBF, 0x24, 0xA2, 0xC2, 0x77, 0x52, 0x77, 0x16, 0xF6, 0xF3, 0x6E, 0xB6, 0x8D})
 	APhone.ProtocolType = AndroidPhone
+	APhone.DumpTime = uint64(time.Now().Unix())
 
 	// copy from aphone
 	id := APad.AppId

@@ -32,6 +32,7 @@ type AppVersion struct {
 	MiscBitmap      uint64       `json:"misc_bitmap"`
 	MainSigMap      uint64       `json:"main_sig_map"`
 	SubSigmap       uint64       `json:"sub_sig_map"`
+	DumpTime        uint64       `json:"dump_time"`
 	ProtocolType    ProtocolType `json:"protocol_type"`
 }
 
