@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
+	"os"
 	"path/filepath"
 	"sync"
 
@@ -44,15 +45,27 @@ var protoCmd = &cobra.Command{
 
 // dump represents the dump command
 var dump = &cobra.Command{
-	Use:   "dump",
+	Use:   "dump [output folder]",
 	Short: "dump version info",
 	Long:  `dump version info`,
 	Run: func(cmd *cobra.Command, args []string) {
+		if len(args) != 1 {
+			cmd.Help()
+			return
+		}
+
 		versions.DumpWtloginSDK("oicq/wlogin_sdk")
 		versions.DumpBeacon("./com/tencent/mobileqq/statistics/QQBeaconReport.java")
+		versions.DumpAppSetting("./com/tencent/common/config/AppSetting.java")
+		versions.FixUp()
 
-		output, _ := json.MarshalIndent(&versions.Version, "", "  ")
-		fmt.Printf("%s\n", output)
+		folder := args[0]
+
+		output, _ := json.MarshalIndent(&versions.APhone, "", "  ")
+		os.WriteFile(filepath.Join(folder, "android_phone.json"), output, 0o644)
+
+		output, _ = json.MarshalIndent(&versions.APad, "", "  ")
+		os.WriteFile(filepath.Join(folder, "android_pad.json"), output, 0o644)
 	},
 }
 

@@ -20,78 +20,62 @@ var Version struct {
 
 func DumpWtloginSDK(file string) {
 	prog := loadFile(filepath.Join(file, "request", "WtloginHelper.java"))
-	grammar.Walk(&methodVisitor{
-		name: "WtloginHelper",
-		v:    wtloginHelperVisitor{},
-	}, prog)
+
+	grammar.Inspect(prog, func(x grammar.JObject) bool {
+		if x, ok := x.(*grammar.JMethodDecl); ok {
+			if x.Name == "WtloginHelper" {
+				walkWtloginHelper(x)
+			}
+			return false
+		}
+		return true
+	})
 
 	prog = loadFile(filepath.Join(file, "tools", "util.java"))
-	grammar.Walk(sdkVisitor{}, prog)
-}
-
-type methodVisitor struct {
-	name string
-	v    grammar.Visitor
-}
-
-func (v *methodVisitor) Visit(x grammar.JObject) grammar.Visitor {
-	if x, ok := x.(*grammar.JMethodDecl); ok {
-		if x.Name == v.name {
-			return v.v
+	grammar.Inspect(prog, func(x grammar.JObject) bool {
+		switch x := x.(type) {
+		case *grammar.JVariableDecl:
+			switch x.Name {
+			case "BUILD_TIME":
+				APhone.BuildTime = parseInt(x.Init.Expr)
+			case "SDK_VERSION":
+				APhone.SdkVersion, _ = strconv.Unquote(format(x.Init.Expr))
+			case "SSO_VERSION":
+				APhone.SSOVersion = parseInt(x.Init.Expr)
+			}
 		}
-	}
-	return v
+		return true
+	})
 }
 
-type wtloginHelperVisitor struct{}
-
-func (v wtloginHelperVisitor) Visit(x grammar.JObject) grammar.Visitor {
-	if x, ok := x.(*grammar.JAssignmentExpr); ok {
-		switch format(x.Left) {
-		case "this.mMainSigMap":
-			Version.MainSigMap = parseInt(x.Right)
-		case "this.mSubSigMap":
-			Version.SubSigMap = parseInt(x.Right)
-		case "this.mMiscBitmap":
-			Version.MiscBitmap = parseInt(x.Right)
-		case "this.mOpenAppid":
-			Version.OpenAppid = parseInt(x.Right)
+func walkWtloginHelper(x grammar.JObject) {
+	grammar.Inspect(x, func(x grammar.JObject) bool {
+		if x, ok := x.(*grammar.JAssignmentExpr); ok {
+			switch format(x.Left) {
+			case "this.mMainSigMap":
+				APhone.MainSigMap = parseInt(x.Right)
+			case "this.mSubSigMap":
+				APhone.SubSigmap = parseInt(x.Right)
+			case "this.mMiscBitmap":
+				APhone.MiscBitmap = parseInt(x.Right)
+			case "this.mOpenAppid":
+				// APhone.OpenAppid = parseInt(x.Right)
+			}
 		}
-	}
-	return v
-}
-
-type sdkVisitor struct{}
-
-func (v sdkVisitor) Visit(x grammar.JObject) grammar.Visitor {
-	switch x := x.(type) {
-	case *grammar.JVariableDecl:
-		switch x.Name {
-		case "BUILD_TIME":
-			Version.BuildTime = parseInt(x.Init.Expr)
-		case "SDK_VERSION":
-			Version.SDKVersion, _ = strconv.Unquote(format(x.Init.Expr))
-		case "SSO_VERSION":
-			Version.SSOVersion = parseInt(x.Init.Expr)
-		}
-	}
-	return v
+		return true
+	})
 }
 
 func DumpBeacon(file string) {
 	prog := loadFile(file)
-	grammar.Walk(beaconVisitor{}, prog)
-}
-
-type beaconVisitor struct{}
-
-func (v beaconVisitor) Visit(x grammar.JObject) grammar.Visitor {
-	switch x := x.(type) {
-	case *grammar.JVariableDecl:
-		switch x.Name {
-		case "PUBLIC_MAIN_APP_KEY":
-			Version.AppKey, _ = strconv.Unquote(format(x.Init.Expr))
+	grammar.Inspect(prog, func(x grammar.JObject) bool {
+		switch x := x.(type) {
+		case *grammar.JVariableDecl:
+			switch x.Name {
+			case "PUBLIC_MAIN_APP_KEY":
+				APhone.AppKey, _ = strconv.Unquote(format(x.Init.Expr))
+			}
 		}
-	}
-	return v
+		return true
+	})
 }

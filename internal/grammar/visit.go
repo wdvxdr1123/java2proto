@@ -42,3 +42,20 @@ func walkList(v Visitor, list []JObject) {
 		Walk(v, x)
 	}
 }
+
+type inspector func(JObject) bool
+
+func (f inspector) Visit(obj JObject) Visitor {
+	if f(obj) {
+		return f
+	}
+	return nil
+}
+
+// Inspect traverses an AST in depth-first order: It starts by calling
+// f(node); node must not be nil. If f returns true, Inspect invokes f
+// recursively for each of the non-nil children of node, followed by a
+// call of f(nil).
+func Inspect(node JObject, f func(JObject) bool) {
+	Walk(inspector(f), node)
+}
