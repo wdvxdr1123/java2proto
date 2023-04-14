@@ -53,7 +53,7 @@ func walkWtloginHelper(x grammar.JObject) {
 		if x, ok := x.(*grammar.JAssignmentExpr); ok {
 			switch format(x.Left) {
 			case "this.mMainSigMap":
-				APhone.MainSigMap = parseInt(x.Right)
+				APhone.MainSigMap = 34869344 | 192
 			case "this.mSubSigMap":
 				APhone.SubSigmap = parseInt(x.Right)
 			case "this.mMiscBitmap":
